@@ -11,6 +11,10 @@ min_freq = 3
 max_vocab = 5000
 seq_len = 50
 
+bos, eos = '*', '#'
+
+pad_ind, oov_ind = 0, 1
+
 path_en_word_vec = 'feat/en_word_vec.pkl'
 path_en_word_ind = 'feat/en_word_ind.pkl'
 path_en_embed = 'feat/en_embed.pkl'
@@ -47,16 +51,21 @@ def shift(flag_texts, lang):
     return sents, labels
 
 
+def tran_dict(word_inds, off):
+    off_word_inds = dict()
+    for word, ind in word_inds.items():
+        off_word_inds[word] = ind + off
+    return off_word_inds
+
+
 def tokenize(sent_words, lang, path_word_ind):
     if lang == 'zh':
         sent_words = [list(words) for words in sent_words]
     model = Dictionary(sent_words)
     model.filter_extremes(no_below=min_freq, no_above=1.0, keep_n=max_vocab)
     word_inds = model.token2id
-    tran_word_inds = dict()
-    for word, ind in word_inds.items():
-        tran_word_inds[word] = ind + 1
-    save(tran_word_inds, path_word_ind)
+    word_inds = tran_dict(word_inds, off=2)
+    save(word_inds, path_word_ind)
 
 
 def embed(path_word_ind, path_word_vec, lang, path_embed):
@@ -71,15 +80,15 @@ def embed(path_word_ind, path_word_vec, lang, path_embed):
     for word, ind in word_inds.items():
         if word in vocab:
             if ind < max_vocab:
-                embed_mat[ind + 1] = word_vecs[word]
+                embed_mat[ind] = word_vecs[word]
     save(embed_mat, path_embed)
 
 
-def sent2ind(words, word_inds, seq_len, loc, oov_ind, keep_oov):
+def sent2ind(words, word_inds, seq_len, loc, keep_oov):
     seq = list()
     for word in words:
         if word in word_inds:
-            seq.append(word_inds[word] + 1)
+            seq.append(word_inds[word])
         elif keep_oov:
             seq.append(oov_ind)
     return pad(seq, seq_len, loc)
@@ -88,23 +97,21 @@ def sent2ind(words, word_inds, seq_len, loc, oov_ind, keep_oov):
 def pad(seq, seq_len, loc):
     if loc == 'post':
         if len(seq) < seq_len:
-            return seq + [0] * (seq_len - len(seq))
+            return seq + [pad_ind] * (seq_len - len(seq))
         else:
             return seq[:seq_len]
     else:
         if len(seq) < seq_len:
-            return [0] * (seq_len - len(seq)) + seq
+            return [pad_ind] * (seq_len - len(seq)) + seq
         else:
             return seq[-seq_len:]
 
 
 def align(sent_words, path_word_ind, path_sent, loc):
     word_inds = load(path_word_ind)
-    vocab_num = min(max_vocab + 2, len(word_inds) + 2)
-    oov_ind = vocab_num - 1
     pad_seqs = list()
     for words in sent_words:
-        pad_seq = sent2ind(words, word_inds, seq_len, loc, oov_ind, keep_oov=True)
+        pad_seq = sent2ind(words, word_inds, seq_len, loc, keep_oov=True)
         pad_seqs.append(pad_seq)
     pad_seqs = np.array(pad_seqs)
     save(pad_seqs, path_sent)
@@ -115,9 +122,9 @@ def vectorize(paths, mode):
         pairs = json.load(f)
     en_texts, zh_texts = zip(*pairs)
     en_texts, zh_texts = list(en_texts), list(zh_texts)
-    en_sents = add_flag(en_texts, 'en', bos='', eos='#')
+    en_sents = add_flag(en_texts, 'en', bos='', eos=eos)
     en_sent_words = [sent.split() for sent in en_sents]
-    flag_zh_texts = add_flag(zh_texts, 'zh', bos='*', eos='#')
+    flag_zh_texts = add_flag(zh_texts, 'zh', bos=bos, eos=eos)
     if mode == 'train':
         tokenize(en_sent_words, 'en', path_en_word_ind)
         embed(path_en_word_ind, path_en_word_vec, 'en', path_en_embed)

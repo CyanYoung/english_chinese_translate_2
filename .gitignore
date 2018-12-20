@@ -10,4 +10,4 @@ __pycache__
 
 # exceed
 univ.txt
-word_vec.pkl
+en_word_vec.pkl

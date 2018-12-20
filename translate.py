@@ -55,7 +55,7 @@ def sample(decode, state, cand):
     while next_word != eos and count < max_len:
         count = count + 1
         zh_text = zh_text + next_word
-        zh_pad_seq = sent2ind(zh_text, zh_word_inds, seq_len, 'post', oov_ind, keep_oov=True)
+        zh_pad_seq = sent2ind(zh_text, zh_word_inds, seq_len, 'post', keep_oov=True)
         zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
         step = min(count - 1, seq_len - 1)
         probs = decode(zh_sent, state)[0][step].numpy()
@@ -64,24 +64,24 @@ def sample(decode, state, cand):
             next_word = eos
         else:
             max_probs = max_probs / np.sum(max_probs)
-            next_word = ind_words[choice(zh_max_inds, p=max_probs)]
+            next_word = zh_ind_words[choice(zh_max_inds, p=max_probs)]
     return zh_text[1:]
 
 
 def search(decode, state, cand):
-    zh_pad_bos = sent2ind([bos], zh_word_inds, seq_len, 'post', oov_ind, keep_oov=True)
+    zh_pad_bos = sent2ind([bos], zh_word_inds, seq_len, 'post', keep_oov=True)
     zh_word = torch.LongTensor([zh_pad_bos]).to(device)
     probs = decode(zh_word, state)[0][0].numpy()
     max_probs, max_inds = check(probs, cand, keep_eos=False)
     zh_texts, log_sums = [bos] * cand, np.log(max_probs)
     fin_zh_texts, fin_logs = list(), list()
-    next_words, count = [ind_words[ind] for ind in max_inds], 1
+    next_words, count = [zh_ind_words[ind] for ind in max_inds], 1
     while cand > 0:
         log_mat, ind_mat = list(), list()
         count = count + 1
         for i in range(cand):
             zh_texts[i] = zh_texts[i] + next_words[i]
-            zh_pad_seq = sent2ind(zh_texts[i], zh_word_inds, seq_len, 'post', oov_ind, keep_oov=True)
+            zh_pad_seq = sent2ind(zh_texts[i], zh_word_inds, seq_len, 'post', keep_oov=True)
             zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
             step = min(count - 1, seq_len - 1)
             probs = decode(zh_sent, state)[0][step].numpy()
@@ -94,7 +94,7 @@ def search(decode, state, cand):
         for log in max_logs:
             args = np.where(log_mat == log)
             sent_arg, ind_arg = int(args[0][0]), int(args[1][0])
-            next_word = ind_words[ind_mat[sent_arg][ind_arg]]
+            next_word = zh_ind_words[ind_mat[sent_arg][ind_arg]]
             if next_word != eos and count < max_len:
                 next_words.append(next_word)
                 next_zh_texts.append(zh_texts[sent_arg])
@@ -115,6 +115,8 @@ max_len = 50
 
 bos, eos = '*', '#'
 
+pad_ind, oov_ind = 0, 1
+
 path_en_embed = 'feat/en_embed.pkl'
 path_en_word_ind = 'feat/en_word_ind.pkl'
 path_zh_embed = 'feat/zh_embed.pkl'
@@ -128,10 +130,11 @@ with open(path_zh_embed, 'rb') as f:
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
 
-eos_ind, oov_ind = zh_word_inds[eos], len(zh_embed_mat) - 1
-skip_inds = [0, oov_ind]
+skip_inds = [pad_ind, oov_ind]
 
-ind_words = ind2word(zh_word_inds)
+eos_ind = zh_word_inds[eos]
+
+zh_ind_words = ind2word(zh_word_inds)
 
 archs = {'s2s_encode': S2SEncode,
          's2s_decode': S2SDecode,
@@ -153,7 +156,7 @@ models = {'s2s_encode': load_model('s2s', en_embed_mat, device, 'encode'),
 def predict(en_text, name, mode):
     en_text = ' '.join([en_text, eos])
     en_words = en_text.split()
-    en_pad_seq = sent2ind(en_words, en_word_inds, seq_len, 'pre', oov_ind, keep_oov=True)
+    en_pad_seq = sent2ind(en_words, en_word_inds, seq_len, 'pre', keep_oov=True)
     en_sent = torch.LongTensor([en_pad_seq]).to(device)
     encode = map_item(name + '_encode', models)
     decode = map_item(name + '_decode', models)
