@@ -131,7 +131,7 @@ def vectorize(paths, mode):
         tokenize(flag_zh_texts, 'zh', path_zh_word_ind)
         embed(path_zh_word_ind, path_zh_word_vec, 'zh', path_zh_embed)
     if mode == 'test':
-        save(en_sents, paths['en_sent'])
+        save(en_texts, paths['en_sent'])
         save(zh_texts, paths['label'])
     else:
         zh_sents, labels = shift(flag_zh_texts, 'zh')

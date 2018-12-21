@@ -1,7 +1,6 @@
 import pickle as pk
 
 import numpy as np
-from numpy.random import choice
 
 import torch
 
@@ -47,25 +46,6 @@ def check(probs, cand, keep_eos):
         if len(max_probs) == cand:
             break
     return max_probs, max_inds
-
-
-def sample(decode, state, cand):
-    zh_text = bos
-    next_word, count = '', 0
-    while next_word != eos and count < max_len:
-        count = count + 1
-        zh_text = zh_text + next_word
-        zh_pad_seq = sent2ind(zh_text, zh_word_inds, seq_len, 'post', keep_oov=True)
-        zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
-        step = min(count - 1, seq_len - 1)
-        probs = decode(zh_sent, state)[0][step].numpy()
-        max_probs, zh_max_inds = check(probs, cand, keep_eos=True)
-        if zh_max_inds[0] == zh_word_inds[eos]:
-            next_word = eos
-        else:
-            max_probs = max_probs / np.sum(max_probs)
-            next_word = zh_ind_words[choice(zh_max_inds, p=max_probs)]
-    return zh_text[1:]
 
 
 def search(decode, state, cand):
@@ -141,9 +121,6 @@ archs = {'s2s_encode': S2SEncode,
          'att_encode': AttEncode,
          'att_decode': AttDecode}
 
-funcs = {'sample': sample,
-         'search': search}
-
 paths = {'s2s': 'model/rnn_s2s.pkl',
          'att': 'model/rnn_att.pkl'}
 
@@ -153,26 +130,23 @@ models = {'s2s_encode': load_model('s2s', en_embed_mat, device, 'encode'),
           'att_decode': load_model('att', zh_embed_mat, device, 'decode')}
 
 
-def predict(en_text, name, mode):
+def predict(text, name):
+    en_text = clean(text)
     en_text = ' '.join([en_text, eos])
     en_words = en_text.split()
     en_pad_seq = sent2ind(en_words, en_word_inds, seq_len, 'pre', keep_oov=True)
     en_sent = torch.LongTensor([en_pad_seq]).to(device)
     encode = map_item(name + '_encode', models)
     decode = map_item(name + '_decode', models)
-    func = map_item(mode, funcs)
     with torch.no_grad():
         encode.eval()
         state = encode(en_sent)
         decode.eval()
-        return func(decode, state, cand=3)
+        return search(decode, state, cand=3)
 
 
 if __name__ == '__main__':
     while True:
-        en_text = input('en_text: ')
-        en_text = clean(en_text)
-        print('s2s: %s' % predict(en_text, 's2s', 'search'))
-        print('att: %s' % predict(en_text, 'att', 'search'))
-        print('s2s: %s' % predict(en_text, 's2s', 'sample'))
-        print('att: %s' % predict(en_text, 'att', 'sample'))
+        text = input('en_text: ')
+        print('s2s: %s' % predict(text, 's2s'))
+        print('att: %s' % predict(text, 'att'))

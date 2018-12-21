@@ -5,23 +5,25 @@ from nltk.translate.bleu_score import corpus_bleu
 from translate import predict
 
 
-path_sent1 = 'feat/sent1_test.pkl'
+path_en_sent = 'feat/en_sent_test.pkl'
 path_label = 'feat/label_test.pkl'
-with open(path_sent1, 'rb') as f:
-    sent1s = pk.load(f)
+with open(path_en_sent, 'rb') as f:
+    en_sents = pk.load(f)
 with open(path_label, 'rb') as f:
     labels = pk.load(f)
 
 
-def test(name, sent1s, labels):
+def test(name, en_sents, labels):
     labels = [[label.split()] for label in labels]
     preds = list()
-    for sent1 in sent1s:
-        pred = predict(sent1, name, 'search')
+    for en_sent in en_sents:
+        print(en_sent)
+        pred = predict(en_sent, name)
+        print(pred)
         preds.append(pred.split())
     print('\n%s bleu: %.2f\n' % (name, corpus_bleu(labels, preds)))
 
 
 if __name__ == '__main__':
-    test('s2s', sent1s, labels)
-    test('att', sent1s, labels)
+    test('s2s', en_sents, labels)
+    test('att', en_sents, labels)
