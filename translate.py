@@ -3,6 +3,7 @@ import pickle as pk
 import numpy as np
 
 import torch
+import torch.nn.functional as F
 
 from preprocess import clean
 
@@ -51,7 +52,8 @@ def check(probs, cand, keep_eos):
 def search(decode, state, cand):
     zh_pad_bos = sent2ind([bos], zh_word_inds, seq_len, 'post', keep_oov=True)
     zh_word = torch.LongTensor([zh_pad_bos]).to(device)
-    probs = decode(zh_word, state)[0][0].numpy()
+    probs = decode(zh_word, state)[0][0]
+    probs = F.softmax(probs, 0).numpy()
     max_probs, max_inds = check(probs, cand, keep_eos=False)
     zh_texts, log_sums = [bos] * cand, np.log(max_probs)
     fin_zh_texts, fin_logs = list(), list()
@@ -64,7 +66,8 @@ def search(decode, state, cand):
             zh_pad_seq = sent2ind(zh_texts[i], zh_word_inds, seq_len, 'post', keep_oov=True)
             zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
             step = min(count - 1, seq_len - 1)
-            probs = decode(zh_sent, state)[0][step].numpy()
+            probs = decode(zh_sent, state)[0][step]
+            probs = F.softmax(probs, 0).numpy()
             max_probs, max_inds = check(probs, cand, keep_eos=True)
             max_logs = np.log(max_probs) + log_sums[i]
             log_mat.append(max_logs)
