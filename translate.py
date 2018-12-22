@@ -5,13 +5,20 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+
 from preprocess import clean
 
 from represent import sent2ind
 
-from nn_arch import S2SEncode, S2SDecode, AttEncode, AttDecode
+from nn_arch import S2SEncode, S2SDecode, AttEncode, AttDecode, AttPlot
 
 from util import map_item
+
+
+plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['font.family'] = ['Arial Unicode MS']
 
 
 def load_model(name, embed_mat, device, mode):
@@ -25,6 +32,19 @@ def load_model(name, embed_mat, device, mode):
     part_dict.update(part_dict)
     part.load_state_dict(part_dict)
     return part
+
+
+def load_plot(name, en_embed_mat, zh_embed_mat, device):
+    en_embed_mat, zh_embed_mat = torch.Tensor(en_embed_mat), torch.Tensor(zh_embed_mat)
+    model = torch.load(map_item(name, paths), map_location=device)
+    full_dict = model.state_dict()
+    arch = map_item(name + '_plot', archs)
+    plot = arch(en_embed_mat, zh_embed_mat)
+    plot_dict = plot.state_dict()
+    plot_dict = {key: val for key, val in full_dict.items() if key in plot_dict}
+    plot_dict.update(plot_dict)
+    plot.load_state_dict(plot_dict)
+    return plot
 
 
 def ind2word(word_inds):
@@ -122,7 +142,8 @@ zh_ind_words = ind2word(zh_word_inds)
 archs = {'s2s_encode': S2SEncode,
          's2s_decode': S2SDecode,
          'att_encode': AttEncode,
-         'att_decode': AttDecode}
+         'att_decode': AttDecode,
+         'att_plot': AttPlot}
 
 paths = {'s2s': 'model/rnn_s2s.pkl',
          'att': 'model/rnn_att.pkl'}
@@ -130,7 +151,22 @@ paths = {'s2s': 'model/rnn_s2s.pkl',
 models = {'s2s_encode': load_model('s2s', en_embed_mat, device, 'encode'),
           's2s_decode': load_model('s2s', zh_embed_mat, device, 'decode'),
           'att_encode': load_model('att', en_embed_mat, device, 'encode'),
-          'att_decode': load_model('att', zh_embed_mat, device, 'decode')}
+          'att_decode': load_model('att', zh_embed_mat, device, 'decode'),
+          'att_plot': load_plot('att', en_embed_mat, zh_embed_mat, device)}
+
+
+def plot_att(en_words, zh_text, atts):
+    en_len, zh_len = len(en_words), len(zh_text)
+    atts = atts[:zh_len, -en_len:]
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    cax = ax.matshow(atts.numpy(), cmap='bone')
+    fig.colorbar(cax)
+    ax.set_xticklabels([''] + en_words, rotation='vertical')
+    ax.set_yticklabels([''] + list(zh_text))
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+    plt.show()
 
 
 def predict(text, name):
@@ -145,7 +181,15 @@ def predict(text, name):
         encode.eval()
         state = encode(en_sent)
         decode.eval()
-        return search(decode, state, cand=3)
+        zh_pred = search(decode, state, cand=3)
+        if name == 'att':
+            zh_text = bos + zh_pred
+            zh_pad_seq = sent2ind(zh_text, zh_word_inds, seq_len, 'post', keep_oov=True)
+            zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
+            plot = map_item(name + '_plot', models)
+            atts = plot(en_sent, zh_sent)[0]
+            plot_att(en_words[:-1], zh_text[1:] + eos, atts)
+        return zh_pred
 
 
 if __name__ == '__main__':

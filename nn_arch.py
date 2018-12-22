@@ -120,3 +120,26 @@ class AttDecode(nn.Module):
         c = torch.matmul(p, v)
         s2 = torch.cat((h2, c), dim=-1)
         return self.dl(s2)
+
+
+class AttPlot(nn.Module):
+    def __init__(self, en_embed_mat, zh_embed_mat):
+        super(AttPlot, self).__init__()
+        self.en_vocab_num, self.en_embed_len = en_embed_mat.size()
+        self.zh_vocab_num, self.zh_embed_len = zh_embed_mat.size()
+        self.en_embed = nn.Embedding(self.en_vocab_num, self.en_embed_len)
+        self.zh_embed = nn.Embedding(self.zh_vocab_num, self.zh_embed_len)
+        self.encode = nn.GRU(self.en_embed_len, 200, batch_first=True)
+        self.decode = nn.GRU(self.zh_embed_len, 200, batch_first=True)
+        self.query, self.key, self.val = [nn.Linear(200, 200)] * 3
+
+    def forward(self, x, y):
+        x = self.en_embed(x)
+        y = self.zh_embed(y)
+        h1, h1_n = self.encode(x)
+        h1 = h1[:, :-1, :]
+        h2, h2_n = self.decode(y, h1_n)
+        q, k, v = self.query(h2), self.key(h1), self.val(h1)
+        scale = math.sqrt(k.size(-1))
+        d = torch.matmul(q, k.permute(0, 2, 1)) / scale
+        return F.softmax(d, dim=-1)
