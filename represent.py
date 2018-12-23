@@ -8,7 +8,7 @@ from gensim.corpora import Dictionary
 
 embed_len = 200
 min_freq = 3
-max_vocab = 5000
+max_vocab = 10000
 seq_len = 50
 
 bos, eos = '*', '#'
