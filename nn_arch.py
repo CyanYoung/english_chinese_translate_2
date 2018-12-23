@@ -78,8 +78,8 @@ class Att(nn.Module):
         q, k, v = self.query(h2), self.key(h1), self.val(h1)
         scale = math.sqrt(k.size(-1))
         d = torch.matmul(q, k.permute(0, 2, 1)) / scale
-        p = F.softmax(d, dim=-1)
-        c = torch.matmul(p, v)
+        a = F.softmax(d, dim=-1)
+        c = torch.matmul(a, v)
         s2 = torch.cat((h2, c), dim=-1)
         return self.dl(s2)
 
@@ -116,8 +116,8 @@ class AttDecode(nn.Module):
         q, k, v = self.query(h2), self.key(h1), self.val(h1)
         scale = math.sqrt(k.size(-1))
         d = torch.matmul(q, k.permute(0, 2, 1)) / scale
-        p = F.softmax(d, dim=-1)
-        c = torch.matmul(p, v)
+        a = F.softmax(d, dim=-1)
+        c = torch.matmul(a, v)
         s2 = torch.cat((h2, c), dim=-1)
         return self.dl(s2)
 
