@@ -17,9 +17,7 @@ def test(name, en_sents, labels):
     labels = [[label.split()] for label in labels]
     preds = list()
     for en_sent in en_sents:
-        print(en_sent)
         pred = predict(en_sent, name)
-        print(pred)
         preds.append(pred.split())
     print('\n%s bleu: %.2f\n' % (name, corpus_bleu(labels, preds)))
 

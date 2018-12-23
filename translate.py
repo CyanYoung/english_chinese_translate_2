@@ -182,7 +182,7 @@ def predict(text, name):
         state = encode(en_sent)
         decode.eval()
         zh_pred = search(decode, state, cand=3)
-        if name == 'att':
+        if name == 'att' and __name__ == '__main__':
             zh_text = bos + zh_pred
             zh_pad_seq = sent2ind(zh_text, zh_word_inds, seq_len, 'post', keep_oov=True)
             zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
