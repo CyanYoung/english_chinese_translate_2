@@ -194,6 +194,6 @@ def predict(text, name):
 
 if __name__ == '__main__':
     while True:
-        text = input('en_text: ')
+        text = input('text: ')
         print('s2s: %s' % predict(text, 's2s'))
         print('att: %s' % predict(text, 'att'))
