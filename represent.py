@@ -135,9 +135,9 @@ def vectorize(paths, mode):
         save(zh_texts, paths['label'])
     else:
         zh_sents, labels = shift(flag_zh_texts, 'zh')
-        align(labels, path_zh_word_ind, paths['label'], loc='post')
         align(en_sent_words, path_en_word_ind, paths['en_sent'], loc='pre')
         align(zh_sents, path_zh_word_ind, paths['zh_sent'], loc='post')
+        align(labels, path_zh_word_ind, paths['label'], loc='post')
 
 
 if __name__ == '__main__':
