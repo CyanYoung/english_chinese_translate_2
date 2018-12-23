@@ -26,7 +26,7 @@ def load_model(name, embed_mat, device, mode):
     model = torch.load(map_item(name, paths), map_location=device)
     full_dict = model.state_dict()
     arch = map_item('_'.join([name, mode]), archs)
-    part = arch(embed_mat)
+    part = arch(embed_mat).to(device)
     part_dict = part.state_dict()
     part_dict = {key: val for key, val in full_dict.items() if key in part_dict}
     part_dict.update(part_dict)
@@ -39,7 +39,7 @@ def load_plot(name, en_embed_mat, zh_embed_mat, device):
     model = torch.load(map_item(name, paths), map_location=device)
     full_dict = model.state_dict()
     arch = map_item(name + '_plot', archs)
-    plot = arch(en_embed_mat, zh_embed_mat)
+    plot = arch(en_embed_mat, zh_embed_mat).to(device)
     plot_dict = plot.state_dict()
     plot_dict = {key: val for key, val in full_dict.items() if key in plot_dict}
     plot_dict.update(plot_dict)
