@@ -1,11 +1,18 @@
 import json
 
+import re
+
 import nltk
 
 from random import shuffle
 
+from util import load_word_re
+
 
 max_num = int(1e5)
+
+path_stop_word = 'dict/stop_word.txt'
+stop_word_re = load_word_re(path_stop_word)
 
 
 def save(path, pairs):
@@ -13,9 +20,13 @@ def save(path, pairs):
         json.dump(pairs, f, ensure_ascii=False, indent=4)
 
 
-def clean(text):
-    words = nltk.word_tokenize(text)
-    return ' '.join(words)
+def clean(text, lang):
+    text = re.sub(stop_word_re, '', text)
+    if lang == 'zh':
+        return text
+    else:
+        words = nltk.word_tokenize(text)
+        return ' '.join(words)
 
 
 def prepare(path_univ, path_train, path_dev, path_test):
@@ -23,7 +34,7 @@ def prepare(path_univ, path_train, path_dev, path_test):
     with open(path_univ, 'r') as f:
         for count, line in enumerate(f):
             en_text, zh_text = line.strip().split('\t')
-            en_text = clean(en_text)
+            en_text, zh_text = clean(en_text, 'en'), clean(zh_text, 'zh')
             pairs.append((en_text.lower(), zh_text))
             if count > max_num:
                 break
