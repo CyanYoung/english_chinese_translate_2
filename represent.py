@@ -8,7 +8,7 @@ from gensim.corpora import Dictionary
 
 embed_len = 200
 min_freq = 3
-max_vocab = 10000
+en_max_vocab, zh_max_vocab = 10000, 5000
 seq_len = 50
 
 bos, eos = '*', '#'
@@ -44,10 +44,9 @@ def add_flag(texts, lang, bos, eos):
     return flag_texts
 
 
-def shift(flag_texts, lang):
-    gap = 1 if lang == 'zh' else 2
-    sents = [text[:-gap] for text in flag_texts]
-    labels = [text[gap:] for text in flag_texts]
+def shift(flag_texts):
+    sents = [text[:-1] for text in flag_texts]
+    labels = [text[1:] for text in flag_texts]
     return sents, labels
 
 
@@ -61,6 +60,9 @@ def tran_dict(word_inds, off):
 def tokenize(sent_words, lang, path_word_ind):
     if lang == 'zh':
         sent_words = [list(words) for words in sent_words]
+        max_vocab = zh_max_vocab
+    else:
+        max_vocab = en_max_vocab
     model = Dictionary(sent_words)
     model.filter_extremes(no_below=min_freq, no_above=1.0, keep_n=max_vocab)
     word_inds = model.token2id
@@ -72,9 +74,9 @@ def embed(path_word_ind, path_word_vec, lang, path_embed):
     word_inds = load(path_word_ind)
     word_vecs = load(path_word_vec)
     if lang == 'zh':
-        vocab = word_vecs.vocab
+        vocab, max_vocab = word_vecs.vocab, zh_max_vocab
     else:
-        vocab = word_vecs.keys()
+        vocab, max_vocab = word_vecs.keys(), en_max_vocab
     vocab_num = min(max_vocab + 2, len(word_inds) + 2)
     embed_mat = np.zeros((vocab_num, embed_len))
     for word, ind in word_inds.items():
@@ -134,7 +136,7 @@ def vectorize(paths, mode):
         save(en_texts, paths['en_sent'])
         save(zh_texts, paths['label'])
     else:
-        zh_sents, labels = shift(flag_zh_texts, 'zh')
+        zh_sents, labels = shift(flag_zh_texts)
         align(en_sent_words, path_en_word_ind, paths['en_sent'], loc='pre')
         align(zh_sents, path_zh_word_ind, paths['zh_sent'], loc='post')
         align(labels, path_zh_word_ind, paths['label'], loc='post')
