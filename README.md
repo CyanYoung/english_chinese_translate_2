@@ -2,7 +2,7 @@
 
 #### 1.preprocess
 
-prepare() 将数据保存为 (en_text, zh_text) 格式，打乱后划分训练、测试集
+clean() 删去无用字符并分词，prepare() 将数据保存为 (en_text, zh_text) 格式
 
 #### 2.represent
 
