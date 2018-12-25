@@ -116,7 +116,7 @@ device = torch.device('cpu')
 seq_len = 50
 max_len = 50
 
-bos, eos = '*', '#'
+bos, eos = '<', '>'
 
 pad_ind, oov_ind = 0, 1
 

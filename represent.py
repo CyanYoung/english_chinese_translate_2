@@ -11,7 +11,7 @@ min_freq = 3
 en_max_vocab, zh_max_vocab = 10000, 5000
 seq_len = 50
 
-bos, eos = '*', '#'
+bos, eos = '<', '>'
 
 pad_ind, oov_ind = 0, 1
 
