@@ -170,7 +170,7 @@ def plot_att(en_words, zh_text, atts):
 
 
 def predict(text, name):
-    en_text = clean(text)
+    en_text = clean(text, 'en')
     en_text = ' '.join([en_text, eos])
     en_words = en_text.split()
     en_pad_seq = sent2ind(en_words, en_word_inds, seq_len, 'pre', keep_oov=True)
