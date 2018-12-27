@@ -94,7 +94,6 @@ class AttEncode(nn.Module):
     def forward(self, x):
         x = self.en_embed(x)
         h1, h1_n = self.encode(x)
-        h1 = h1[:, :-1, :]
         return h1
 
 
