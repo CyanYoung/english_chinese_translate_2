@@ -7,7 +7,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
 
-from nn_arch import S2S, Att
+from nn_arch import Att
 
 from util import map_item
 
@@ -28,11 +28,9 @@ with open(path_zh_embed, 'rb') as f:
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
 
-archs = {'s2s': S2S,
-         'att': Att}
+archs = {'att': Att}
 
-paths = {'s2s': 'model/rnn_s2s.pkl',
-         'att': 'model/rnn_att.pkl'}
+paths = {'att': 'model/rnn_att.pkl'}
 
 
 def load_feat(path_feats):
@@ -158,5 +156,4 @@ if __name__ == '__main__':
     path_feats['en_sent_dev'] = 'feat/en_sent_dev.pkl'
     path_feats['zh_sent_dev'] = 'feat/zh_sent_dev.pkl'
     path_feats['label_dev'] = 'feat/label_dev.pkl'
-    fit('s2s', 50, en_embed_mat, zh_embed_mat, path_feats, detail)
     fit('att', 50, en_embed_mat, zh_embed_mat, path_feats, detail)

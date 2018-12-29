@@ -5,65 +5,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class S2S(nn.Module):
-    def __init__(self, en_embed_mat, zh_embed_mat):
-        super(S2S, self).__init__()
-        self.en_vocab_num, self.en_embed_len = en_embed_mat.size()
-        self.zh_vocab_num, self.zh_embed_len = zh_embed_mat.size()
-        self.en_embed = nn.Embedding(self.en_vocab_num, self.en_embed_len, _weight=en_embed_mat)
-        self.zh_embed = nn.Embedding(self.zh_vocab_num, self.zh_embed_len, _weight=zh_embed_mat)
-        self.encode = nn.GRU(self.en_embed_len, 200, batch_first=True)
-        self.decode = nn.GRU(self.zh_embed_len, 200, batch_first=True)
-        self.dl = nn.Sequential(nn.Dropout(0.2),
-                                nn.Linear(200, self.zh_vocab_num))
-
-    def forward(self, x, y):
-        x = self.en_embed(x)
-        y = self.zh_embed(y)
-        h1, h1_n = self.encode(x)
-        del h1
-        h2, h2_n = self.decode(y, h1_n)
-        return self.dl(h2)
-
-
-class S2SEncode(nn.Module):
-    def __init__(self, en_embed_mat):
-        super(S2SEncode, self).__init__()
-        self.en_vocab_num, self.en_embed_len = en_embed_mat.size()
-        self.en_embed = nn.Embedding(self.en_vocab_num, self.en_embed_len)
-        self.encode = nn.GRU(self.en_embed_len, 200, batch_first=True)
-
-    def forward(self, x):
-        x = self.en_embed(x)
-        h1, h1_n = self.encode(x)
-        del h1
-        return h1_n
-
-
-class S2SDecode(nn.Module):
-    def __init__(self, zh_embed_mat):
-        super(S2SDecode, self).__init__()
-        self.zh_vocab_num, self.zh_embed_len = zh_embed_mat.size()
-        self.zh_embed = nn.Embedding(self.zh_vocab_num, self.zh_embed_len)
-        self.decode = nn.GRU(self.zh_embed_len, 200, batch_first=True)
-        self.dl = nn.Sequential(nn.Dropout(0.2),
-                                nn.Linear(200, self.zh_vocab_num))
-
-    def forward(self, y, h1_n):
-        y = self.zh_embed(y)
-        h2, h2_n = self.decode(y, h1_n)
-        return self.dl(h2)
-
-
 class Att(nn.Module):
-    def __init__(self, en_embed_mat, zh_embed_mat):
+    def __init__(self, en_embed_mat, zh_embed_mat, stack):
         super(Att, self).__init__()
         self.en_vocab_num, self.en_embed_len = en_embed_mat.size()
         self.zh_vocab_num, self.zh_embed_len = zh_embed_mat.size()
         self.en_embed = nn.Embedding(self.en_vocab_num, self.en_embed_len, _weight=en_embed_mat)
         self.zh_embed = nn.Embedding(self.zh_vocab_num, self.zh_embed_len, _weight=zh_embed_mat)
-        self.encode = nn.GRU(self.en_embed_len, 200, batch_first=True)
-        self.decode = nn.GRU(self.zh_embed_len, 200, batch_first=True)
         self.query, self.key, self.val = [nn.Linear(200, 200)] * 3
         self.dl = nn.Sequential(nn.Dropout(0.2),
                                 nn.Linear(400, self.zh_vocab_num))

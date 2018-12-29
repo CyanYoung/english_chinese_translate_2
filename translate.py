@@ -12,7 +12,7 @@ from preprocess import clean
 
 from represent import sent2ind
 
-from nn_arch import S2SEncode, S2SDecode, AttEncode, AttDecode, AttPlot
+from nn_arch import AttEncode, AttDecode, AttPlot
 
 from util import map_item
 
@@ -139,18 +139,13 @@ eos_ind = zh_word_inds[eos]
 
 zh_ind_words = ind2word(zh_word_inds)
 
-archs = {'s2s_encode': S2SEncode,
-         's2s_decode': S2SDecode,
-         'att_encode': AttEncode,
+archs = {'att_encode': AttEncode,
          'att_decode': AttDecode,
          'att_plot': AttPlot}
 
-paths = {'s2s': 'model/rnn_s2s.pkl',
-         'att': 'model/rnn_att.pkl'}
+paths = {'att': 'model/rnn_att.pkl'}
 
-models = {'s2s_encode': load_model('s2s', en_embed_mat, device, 'encode'),
-          's2s_decode': load_model('s2s', zh_embed_mat, device, 'decode'),
-          'att_encode': load_model('att', en_embed_mat, device, 'encode'),
+models = {'att_encode': load_model('att', en_embed_mat, device, 'encode'),
           'att_decode': load_model('att', zh_embed_mat, device, 'decode'),
           'att_plot': load_plot('att', en_embed_mat, zh_embed_mat, device)}
 
@@ -195,5 +190,4 @@ def predict(text, name):
 if __name__ == '__main__':
     while True:
         text = input('text: ')
-        print('s2s: %s' % predict(text, 's2s'))
         print('att: %s' % predict(text, 'att'))
