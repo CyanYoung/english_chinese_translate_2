@@ -5,87 +5,93 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class Att(nn.Module):
-    def __init__(self, en_embed_mat, zh_embed_mat, stack):
-        super(Att, self).__init__()
-        self.en_vocab_num, self.en_embed_len = en_embed_mat.size()
-        self.zh_vocab_num, self.zh_embed_len = zh_embed_mat.size()
-        self.en_embed = nn.Embedding(self.en_vocab_num, self.en_embed_len, _weight=en_embed_mat)
-        self.zh_embed = nn.Embedding(self.zh_vocab_num, self.zh_embed_len, _weight=zh_embed_mat)
-        self.query, self.key, self.val = [nn.Linear(200, 200)] * 3
-        self.dl = nn.Sequential(nn.Dropout(0.2),
-                                nn.Linear(400, self.zh_vocab_num))
-
-    def forward(self, x, y):
-        x = self.en_embed(x)
-        y = self.zh_embed(y)
-        h1, h1_n = self.encode(x)
-        h1 = h1[:, :-1, :]
-        h2, h2_n = self.decode(y, h1_n)
-        q, k, v = self.query(h2), self.key(h1), self.val(h1)
-        scale = math.sqrt(k.size(-1))
-        d = torch.matmul(q, k.permute(0, 2, 1)) / scale
-        a = F.softmax(d, dim=-1)
-        c = torch.matmul(a, v)
-        s2 = torch.cat((h2, c), dim=-1)
-        return self.dl(s2)
-
-
 class AttEncode(nn.Module):
-    def __init__(self, en_embed_mat):
+    def __init__(self, en_embed_mat, stack, head):
         super(AttEncode, self).__init__()
-        self.en_vocab_num, self.en_embed_len = en_embed_mat.size()
-        self.en_embed = nn.Embedding(self.en_vocab_num, self.en_embed_len)
-        self.encode = nn.GRU(self.en_embed_len, 200, batch_first=True)
+        self.stack, self.head = stack, head
+        en_vocab_num, en_embed_len = en_embed_mat.size()
+        self.en_embed_len = en_embed_len
+        self.en_embed = nn.Embedding(en_vocab_num, en_embed_len, _weight=en_embed_mat)
+        self.querys, self.keys, self.vals = [[[nn.Linear(en_embed_len, 200)] * head] * stack] * 3
+        self.fuses = [nn.Linear(200 * head, 200)] * stack
+        self.lals = [nn.Sequential(nn.Linear(200, 200),
+                                   nn.ReLU(),
+                                   nn.Linear(200, 200))] * stack
 
     def forward(self, x):
+        p = self.make_pos(x)
         x = self.en_embed(x)
-        h1, h1_n = self.encode(x)
-        return h1
+        x = x + p
+        for i in range(self.stack):
+            r = x
+            x = self.mul_att(x, i)
+            x = F.layer_norm(x + r, x.size()[1:])
+            r = x
+            x = self.lals[i](x)
+            x = F.layer_norm(x + r, x.size()[1:])
+        return x
+
+    def make_pos(self, x):
+        p = torch.zeros(x.size(0), x.size(1), self.en_embed_len)
+        for i in range(x.size(0)):
+            z = (x[i] == 0).sum().byte().item()
+            for j in range(x.size(1) - z):
+
+                for k in range(self.en_embed_len):
+                    pass
+        return p
+
+    def mul_att(self, x, i):
+        c = list()
+        for j in range(self.head):
+            q, k, v = self.querys[i][j](x), self.keys[i][j](x), self.vals[i][j](x)
+            scale = math.sqrt(k.size(-1))
+            d = torch.matmul(q, k.permute(0, 2, 1)) / scale
+            a = F.softmax(d, dim=-1)
+            c_i = torch.matmul(a, v)
+            c.append(c_i)
+        x = torch.cat(c, dim=-1)
+        return self.fuses[i](x)
 
 
 class AttDecode(nn.Module):
-    def __init__(self, zh_embed_mat):
+    def __init__(self, zh_embed_mat, stack, head):
         super(AttDecode, self).__init__()
-        self.zh_vocab_num, self.zh_embed_len = zh_embed_mat.size()
-        self.zh_embed = nn.Embedding(self.zh_vocab_num, self.zh_embed_len)
-        self.decode = nn.GRU(self.zh_embed_len, 200, batch_first=True)
-        self.query, self.key, self.val = [nn.Linear(200, 200)] * 3
-        self.dl = nn.Sequential(nn.Dropout(0.2),
-                                nn.Linear(400, self.zh_vocab_num))
+        self.stack, self.head = stack, head
+        zh_vocab_num, zh_embed_len = zh_embed_mat.size()
+        self.zh_embed_len = zh_embed_len
+        self.zh_embed = nn.Embedding(zh_vocab_num, zh_embed_len, _weight=zh_embed_mat)
+        self.querys, self.keys, self.vals = [[[nn.Linear(zh_embed_len, 200)] * head] * stack] * 3
+        self.fuses = [nn.Linear(200 * head, 200)] * stack
+        self.lals = [nn.Sequential(nn.Linear(200, 200),
+                                   nn.ReLU(),
+                                   nn.Linear(200, 200))] * stack
 
-    def forward(self, y, h1):
-        y = self.zh_embed(y)
-        h1_n = torch.unsqueeze(h1[:, -1, :], dim=0)
-        h1 = h1[:, :-1, :]
-        h2, h2_n = self.decode(y, h1_n)
-        q, k, v = self.query(h2), self.key(h1), self.val(h1)
-        scale = math.sqrt(k.size(-1))
-        d = torch.matmul(q, k.permute(0, 2, 1)) / scale
-        a = F.softmax(d, dim=-1)
-        c = torch.matmul(a, v)
-        s2 = torch.cat((h2, c), dim=-1)
-        return self.dl(s2)
+    def forward(self, x):
+        p = self.make_pos(x)
+        x = self.zh_embed(x)
+        x = x + p
+        for i in range(self.stack):
+            r = x
+            x = self.mul_att(x, i)
+            x = F.layer_norm(x + r, x.size()[1:])
+            r = x
+            x = self.lals[i](x)
+            x = F.layer_norm(x + r, x.size()[1:])
+        return x
 
+    def make_pos(self, x):
+        p = torch.zeros(x.size(0), x.size(1), self.en_embed_len)
+        return p
 
-class AttPlot(nn.Module):
-    def __init__(self, en_embed_mat, zh_embed_mat):
-        super(AttPlot, self).__init__()
-        self.en_vocab_num, self.en_embed_len = en_embed_mat.size()
-        self.zh_vocab_num, self.zh_embed_len = zh_embed_mat.size()
-        self.en_embed = nn.Embedding(self.en_vocab_num, self.en_embed_len)
-        self.zh_embed = nn.Embedding(self.zh_vocab_num, self.zh_embed_len)
-        self.encode = nn.GRU(self.en_embed_len, 200, batch_first=True)
-        self.decode = nn.GRU(self.zh_embed_len, 200, batch_first=True)
-        self.query, self.key, self.val = [nn.Linear(200, 200)] * 3
-
-    def forward(self, x, y):
-        x = self.en_embed(x)
-        y = self.zh_embed(y)
-        h1, h1_n = self.encode(x)
-        h1 = h1[:, :-1, :]
-        h2, h2_n = self.decode(y, h1_n)
-        q, k, v = self.query(h2), self.key(h1), self.val(h1)
-        scale = math.sqrt(k.size(-1))
-        d = torch.matmul(q, k.permute(0, 2, 1)) / scale
-        return F.softmax(d, dim=-1)
+    def mul_att(self, x, i):
+        c = list()
+        for j in range(self.head):
+            q, k, v = self.querys[i][j](x), self.keys[i][j](x), self.vals[i][j](x)
+            scale = math.sqrt(k.size(-1))
+            d = torch.matmul(q, k.permute(0, 2, 1)) / scale
+            a = F.softmax(d, dim=-1)
+            c_i = torch.matmul(a, v)
+            c.append(c_i)
+        x = torch.cat(c, dim=-1)
+        return self.fuses[i](x)
