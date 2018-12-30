@@ -18,10 +18,23 @@ def make_pos(x, embed_len):
     return p
 
 
+def mul_att(layers, h1, h2):
+    querys, keys, vals, fuse = layers
+    c = list()
+    for i in range(len(querys)):
+        q, k, v = querys[i](h2), keys[i](h1), vals[i](h1)
+        scale = math.sqrt(k.size(-1))
+        d = torch.matmul(q, k.permute(0, 2, 1)) / scale
+        a = F.softmax(d, dim=-1)
+        c_i = torch.matmul(a, v)
+        c.append(c_i)
+    x = torch.cat(c, dim=-1)
+    return fuse(x)
+
+
 class AttEncode(nn.Module):
     def __init__(self, en_embed_mat, stack, head):
         super(AttEncode, self).__init__()
-        self.stack, self.head = stack, head
         en_vocab_num, en_embed_len = en_embed_mat.size()
         self.en_embed_len = en_embed_len
         self.en_embed = nn.Embedding(en_vocab_num, en_embed_len, _weight=en_embed_mat)
@@ -35,32 +48,20 @@ class AttEncode(nn.Module):
         p = make_pos(x, self.en_embed_len)
         x = self.en_embed(x)
         x = x + p
-        for i in range(self.stack):
+        for i in range(len(self.querys)):
             r = x
-            x = self.mul_att(x, x, i)
+            layers = [self.querys[i], self.keys[i], self.vals[i], self.fuses[i]]
+            x = mul_att(layers, x, x)
             x = F.layer_norm(x + r, x.size()[1:])
             r = x
             x = self.lals[i](x)
             x = F.layer_norm(x + r, x.size()[1:])
         return x
 
-    def mul_att(self, h1, h2, i):
-        c = list()
-        for j in range(self.head):
-            q, k, v = self.querys[i][j](h2), self.keys[i][j](h1), self.vals[i][j](h1)
-            scale = math.sqrt(k.size(-1))
-            d = torch.matmul(q, k.permute(0, 2, 1)) / scale
-            a = F.softmax(d, dim=-1)
-            c_i = torch.matmul(a, v)
-            c.append(c_i)
-        x = torch.cat(c, dim=-1)
-        return self.fuses[i](x)
-
 
 class AttDecode(nn.Module):
     def __init__(self, zh_embed_mat, stack, head):
         super(AttDecode, self).__init__()
-        self.stack, self.head = stack, head
         zh_vocab_num, zh_embed_len = zh_embed_mat.size()
         self.zh_embed_len = zh_embed_len
         self.zh_embed = nn.Embedding(zh_vocab_num, zh_embed_len, _weight=zh_embed_mat)
@@ -82,15 +83,3 @@ class AttDecode(nn.Module):
             x = self.lals[i](x)
             x = F.layer_norm(x + r, x.size()[1:])
         return x
-
-    def mul_att(self, h1, h2, i):
-        c = list()
-        for j in range(self.head):
-            q, k, v = self.querys[i][j](h2), self.keys[i][j](h1), self.vals[i][j](h1)
-            scale = math.sqrt(k.size(-1))
-            d = torch.matmul(q, k.permute(0, 2, 1)) / scale
-            a = F.softmax(d, dim=-1)
-            c_i = torch.matmul(a, v)
-            c.append(c_i)
-        x = torch.cat(c, dim=-1)
-        return self.fuses[i](x)
