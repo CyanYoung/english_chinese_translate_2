@@ -7,7 +7,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
 
-from nn_arch import Att
+from nn_arch import AttEncode, AttDecode
 
 from util import map_item
 
@@ -28,9 +28,11 @@ with open(path_zh_embed, 'rb') as f:
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
 
-archs = {'att': Att}
+archs = {'att_encode': AttEncode,
+         'att_decode': AttDecode}
 
-paths = {'att': 'model/rnn_att.pkl'}
+paths = {'att_encode': 'model/att_enc.pkl',
+         'att_decode': 'model/att_dec.pkl'}
 
 
 def load_feat(path_feats):
