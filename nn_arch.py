@@ -33,7 +33,7 @@ def mul_att(layers, h1, h2):
 
 
 class AttEncode(nn.Module):
-    def __init__(self, en_embed_mat, stack, head):
+    def __init__(self, en_embed_mat, head, stack):
         super(AttEncode, self).__init__()
         en_vocab_num, en_embed_len = en_embed_mat.size()
         self.en_embed_len = en_embed_len
@@ -60,7 +60,7 @@ class AttEncode(nn.Module):
 
 
 class AttDecode(nn.Module):
-    def __init__(self, zh_embed_mat, stack, head):
+    def __init__(self, zh_embed_mat, head, stack):
         super(AttDecode, self).__init__()
         zh_vocab_num, zh_embed_len = zh_embed_mat.size()
         self.zh_embed_len = zh_embed_len
