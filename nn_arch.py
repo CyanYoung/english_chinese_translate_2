@@ -66,20 +66,27 @@ class AttDecode(nn.Module):
         self.zh_embed_len = zh_embed_len
         self.zh_embed = nn.Embedding(zh_vocab_num, zh_embed_len, _weight=zh_embed_mat)
         self.querys, self.keys, self.vals = [[[[nn.Linear(zh_embed_len, 200)] * head] * stack] * 2] * 3
-        self.fuses = [nn.Linear(200 * head, 200)] * stack
+        self.fuses = [[nn.Linear(200 * head, 200)] * stack] * 2
         self.lals = [nn.Sequential(nn.Linear(200, 200),
                                    nn.ReLU(),
                                    nn.Linear(200, 200))] * stack
+        self.dl = nn.Sequential(nn.Dropout(0.2),
+                                nn.Linear(200, zh_vocab_num))
 
     def forward(self, y, x):
         p = make_pos(y, self.zh_embed_len)
         y = self.zh_embed(y)
         y = y + p
-        for i in range(self.stack):
+        for i in range(len(self.querys)):
             r = y
-            x = self.mul_att(y, y, i)
-            x = F.layer_norm(x + r, x.size()[1:])
-            r = x
-            x = self.lals[i](x)
-            x = F.layer_norm(x + r, x.size()[1:])
-        return x
+            layers = [self.querys[0][i], self.keys[0][i], self.vals[0][i], self.fuses[0][i]]
+            y = mul_att(layers, y, y)
+            y = F.layer_norm(y + r, y.size()[1:])
+            r = y
+            layers = [self.querys[1][i], self.keys[1][i], self.vals[1][i], self.fuses[1][i]]
+            y = mul_att(layers, y, x)
+            y = F.layer_norm(y + r, y.size()[1:])
+            r = y
+            y = self.lals[i](y)
+            y = F.layer_norm(y + r, y.size()[1:])
+        return self.dl(y)
