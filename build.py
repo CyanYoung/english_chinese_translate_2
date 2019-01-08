@@ -79,7 +79,8 @@ def get_metric(models, loss_func, triples):
     labels = labels.view(-1)
     num = (labels > 0).sum().item()
     state = encode(en_sents)
-    prods = decode(zh_sents, state)
+
+    prods = decode(state, zh_sents)
     prods = prods.view(-1, prods.size(-1))
     preds = torch.max(prods, 1)[1]
     loss = loss_func(prods, labels)
@@ -120,7 +121,7 @@ def fit(name, max_epoch, en_embed_mat, zh_embed_mat, path_feats, detail):
     en_embed_mat, zh_embed_mat = torch.Tensor(en_embed_mat), torch.Tensor(zh_embed_mat)
     Encode, Decode = map_item(name + '_encode', archs), map_item(name + '_decode', archs)
     encode = Encode(en_embed_mat, head=4, stack=2).to(device)
-    decode = Encode(zh_embed_mat, head=4, stack=2).to(device)
+    decode = Decode(zh_embed_mat, head=4, stack=2).to(device)
     loss_func = CrossEntropyLoss(ignore_index=0, reduction='sum')
     learn_rate, min_rate = 1e-3, 1e-5
     min_dev_loss = float('inf')

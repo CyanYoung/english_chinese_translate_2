@@ -16,11 +16,11 @@ def make_pos(x, embed_len):
     return p.repeat(x.size(0), 1, 1)
 
 
-def mul_att(layers, h1, h2):
+def mul_att(layers, x, y):
     querys, keys, vals, fuse = layers
     c = list()
     for i in range(len(querys)):
-        q, k, v = querys[i](h2), keys[i](h1), vals[i](h1)
+        q, k, v = querys[i](y), keys[i](x), vals[i](x)
         scale = math.sqrt(k.size(-1))
         d = torch.matmul(q, k.permute(0, 2, 1)) / scale
         a = F.softmax(d, dim=-1)
@@ -44,7 +44,6 @@ class AttEncode(nn.Module):
 
     def forward(self, x):
         p = make_pos(x, self.en_embed_len)
-        print(p)
         x = self.en_embed(x)
         x = x + p
         for i in range(len(self.querys)):
@@ -72,7 +71,7 @@ class AttDecode(nn.Module):
         self.dl = nn.Sequential(nn.Dropout(0.2),
                                 nn.Linear(200, zh_vocab_num))
 
-    def forward(self, y, x):
+    def forward(self, x, y):
         p = make_pos(y, self.zh_embed_len)
         y = self.zh_embed(y)
         y = y + p
