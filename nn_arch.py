@@ -6,16 +6,14 @@ import torch.nn.functional as F
 
 
 def make_pos(x, embed_len):
-    p = torch.zeros(x.size(0), x.size(1), embed_len)
-    for k in range(x.size(0)):
-        off = (x[k] == 0).sum().byte().item()
-        for i in range(x.size(1) - off):
-            for j in range(embed_len):
-                if j % 2:
-                    p[k, i + off, j] = math.sin(i / math.pow(1e3, j / embed_len))
-                else:
-                    p[k, i + off, j] = math.cos(i / math.pow(1e3, (j - 1) / embed_len))
-    return p
+    p = torch.zeros(1, x.size(1), embed_len)
+    for i in range(x.size(1)):
+        for j in range(embed_len):
+            if j % 2:
+                p[0, i, j] = math.sin(i / math.pow(1e5, j / embed_len))
+            else:
+                p[0, i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
+    return p.repeat(x.size(0), 1, 1)
 
 
 def mul_att(layers, h1, h2):
@@ -46,6 +44,7 @@ class AttEncode(nn.Module):
 
     def forward(self, x):
         p = make_pos(x, self.en_embed_len)
+        print(p)
         x = self.en_embed(x)
         x = x + p
         for i in range(len(self.querys)):
