@@ -12,9 +12,9 @@ def make_pos(x, embed_len):
         for i in range(x.size(1) - off):
             for j in range(embed_len):
                 if j % 2:
-                    p[k, i + off, j] = torch.sin(i / torch.pow(1e5, j / embed_len))
+                    p[k, i + off, j] = math.sin(i / math.pow(1e3, j / embed_len))
                 else:
-                    p[k, i + off, j] = torch.cos(i / torch.pow(1e5, (j - 1) / embed_len))
+                    p[k, i + off, j] = math.cos(i / math.pow(1e3, (j - 1) / embed_len))
     return p
 
 
