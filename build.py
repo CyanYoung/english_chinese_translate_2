@@ -132,7 +132,7 @@ def batch_dev(model, loss_func, loader):
     return total_loss / total_num, total_acc / total_num
 
 
-def fit(name, max_epoch, en_embed_mat, zh_embed_mat, path_feats, detail):
+def fit(name, max_epoch, en_embed_mat, zh_embed_mat, pos_mat, path_feats, detail):
     tensors = tensorize(load_feat(path_feats), device)
     bound = int(len(tensors) / 2)
     train_loader, dev_loader = get_loader(tensors[:bound]), get_loader(tensors[bound:])
@@ -186,4 +186,4 @@ if __name__ == '__main__':
     path_feats['en_sent_dev'] = 'feat/en_sent_dev.pkl'
     path_feats['zh_sent_dev'] = 'feat/zh_sent_dev.pkl'
     path_feats['label_dev'] = 'feat/label_dev.pkl'
-    fit('trm', 50, en_embed_mat, zh_embed_mat, path_feats, detail)
+    fit('trm', 50, en_embed_mat, zh_embed_mat, pos_mat, path_feats, detail)
