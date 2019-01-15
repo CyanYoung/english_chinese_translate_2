@@ -12,7 +12,7 @@ from preprocess import clean
 
 from represent import sent2ind
 
-from nn_arch import AttEncode, AttDecode
+from nn_arch import TrmEncode, TrmDecode
 
 from util import map_item
 
@@ -126,13 +126,14 @@ eos_ind = zh_word_inds[eos]
 
 zh_ind_words = ind2word(zh_word_inds)
 
-archs = {'att_encode': AttEncode,
-         'att_decode': AttDecode}
+archs = {'trm_encode': TrmEncode,
+         'trm_decode': TrmDecode}
 
-paths = {'att': 'model/rnn_att.pkl'}
+paths = {'trm_encode': 'model/trm_enc.pkl',
+         'trm_decode': 'model/trm_dec.pkl'}
 
-models = {'att_encode': load_model('att', en_embed_mat, device, 'encode'),
-          'att_decode': load_model('att', zh_embed_mat, device, 'decode')}
+models = {'trm_encode': load_model('trm', en_embed_mat, device, 'encode'),
+          'trm_decode': load_model('trm', zh_embed_mat, device, 'decode')}
 
 
 def plot_att(en_words, zh_text, atts):
@@ -162,7 +163,7 @@ def predict(text, name):
         state = encode(en_sent)
         decode.eval()
         zh_pred = search(decode, state, cand=3)
-        if name == 'att' and __name__ == '__main__':
+        if __name__ == '__main__':
             zh_text = bos + zh_pred
             zh_pad_seq = sent2ind(zh_text, zh_word_inds, seq_len, keep_oov=True)
             zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
@@ -175,4 +176,4 @@ def predict(text, name):
 if __name__ == '__main__':
     while True:
         text = input('text: ')
-        print('att: %s' % predict(text, 'att'))
+        print('trm: %s' % predict(text, 'trm'))

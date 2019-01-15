@@ -19,9 +19,9 @@ def mul_att(layers, x, y):
     return fuse(x)
 
 
-class AttEncode(nn.Module):
+class TrmEncode(nn.Module):
     def __init__(self, en_embed_mat, pos_mat, head, stack):
-        super(AttEncode, self).__init__()
+        super(TrmEncode, self).__init__()
         en_vocab_num, en_embed_len = en_embed_mat.size()
         self.en_embed = nn.Embedding(en_vocab_num, en_embed_len, _weight=en_embed_mat)
         self.pos = pos_mat
@@ -45,9 +45,9 @@ class AttEncode(nn.Module):
         return x
 
 
-class AttDecode(nn.Module):
+class TrmDecode(nn.Module):
     def __init__(self, zh_embed_mat, pos_mat, head, stack):
-        super(AttDecode, self).__init__()
+        super(TrmDecode, self).__init__()
         zh_vocab_num, zh_embed_len = zh_embed_mat.size()
         self.zh_embed = nn.Embedding(zh_vocab_num, zh_embed_len, _weight=zh_embed_mat)
         self.pos = pos_mat

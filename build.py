@@ -9,7 +9,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
 
-from nn_arch import AttEncode, AttDecode
+from nn_arch import TrmEncode, TrmDecode
 
 from util import map_item
 
@@ -46,11 +46,11 @@ with open(path_zh_word_ind, 'rb') as f:
 
 pos_mat = make_pos(batch_size, seq_len, embed_len)
 
-archs = {'att_encode': AttEncode,
-         'att_decode': AttDecode}
+archs = {'trm_encode': TrmEncode,
+         'trm_decode': TrmDecode}
 
-paths = {'att_encode': 'model/att_enc.pkl',
-         'att_decode': 'model/att_dec.pkl'}
+paths = {'trm_encode': 'model/trm_enc.pkl',
+         'trm_decode': 'model/trm_dec.pkl'}
 
 
 def load_feat(path_feats):
@@ -186,4 +186,4 @@ if __name__ == '__main__':
     path_feats['en_sent_dev'] = 'feat/en_sent_dev.pkl'
     path_feats['zh_sent_dev'] = 'feat/zh_sent_dev.pkl'
     path_feats['label_dev'] = 'feat/label_dev.pkl'
-    fit('att', 50, en_embed_mat, zh_embed_mat, path_feats, detail)
+    fit('trm', 50, en_embed_mat, zh_embed_mat, path_feats, detail)

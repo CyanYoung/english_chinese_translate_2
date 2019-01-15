@@ -23,4 +23,4 @@ def test(name, en_sents, labels):
 
 
 if __name__ == '__main__':
-    test('att', en_sents, labels)
+    test('trm', en_sents, labels)
