@@ -86,34 +86,24 @@ def embed(path_word_ind, path_word_vec, lang, path_embed):
     save(embed_mat, path_embed)
 
 
-def sent2ind(words, word_inds, seq_len, loc, keep_oov):
+def sent2ind(words, word_inds, seq_len, keep_oov):
     seq = list()
     for word in words:
         if word in word_inds:
             seq.append(word_inds[word])
         elif keep_oov:
             seq.append(oov_ind)
-    return pad(seq, seq_len, loc)
-
-
-def pad(seq, seq_len, loc):
-    if loc == 'post':
-        if len(seq) < seq_len:
-            return seq + [pad_ind] * (seq_len - len(seq))
-        else:
-            return seq[:seq_len]
+    if len(seq) < seq_len:
+        return seq + [pad_ind] * (seq_len - len(seq))
     else:
-        if len(seq) < seq_len:
-            return [pad_ind] * (seq_len - len(seq)) + seq
-        else:
-            return seq[-seq_len:]
+        return seq[:seq_len]
 
 
-def align(sent_words, path_word_ind, path_sent, loc):
+def align(sent_words, path_word_ind, path_sent):
     word_inds = load(path_word_ind)
     pad_seqs = list()
     for words in sent_words:
-        pad_seq = sent2ind(words, word_inds, seq_len, loc, keep_oov=True)
+        pad_seq = sent2ind(words, word_inds, seq_len, keep_oov=True)
         pad_seqs.append(pad_seq)
     pad_seqs = np.array(pad_seqs)
     save(pad_seqs, path_sent)
@@ -137,9 +127,9 @@ def vectorize(paths, mode):
         save(zh_texts, paths['label'])
     else:
         zh_sents, labels = shift(flag_zh_texts)
-        align(en_sent_words, path_en_word_ind, paths['en_sent'], loc='pre')
-        align(zh_sents, path_zh_word_ind, paths['zh_sent'], loc='post')
-        align(labels, path_zh_word_ind, paths['label'], loc='post')
+        align(en_sent_words, path_en_word_ind, paths['en_sent'])
+        align(zh_sents, path_zh_word_ind, paths['zh_sent'])
+        align(labels, path_zh_word_ind, paths['label'])
 
 
 if __name__ == '__main__':
