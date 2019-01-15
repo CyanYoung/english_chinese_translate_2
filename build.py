@@ -2,6 +2,8 @@ import time
 
 import pickle as pk
 
+import math
+
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
@@ -12,9 +14,23 @@ from nn_arch import AttEncode, AttDecode
 from util import map_item
 
 
+def make_pos(batch_size, seq_len, embed_len):
+    p = torch.zeros(1, seq_len, embed_len)
+    for i in range(seq_len):
+        for j in range(embed_len):
+            if j % 2:
+                p[0, i, j] = math.sin(i / math.pow(1e5, j / embed_len))
+            else:
+                p[0, i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
+    return p.repeat(batch_size, 1, 1)
+
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 detail = False if torch.cuda.is_available() else True
+
+embed_len = 200
+seq_len = 50
 
 batch_size = 32
 
@@ -27,6 +43,8 @@ with open(path_zh_embed, 'rb') as f:
     zh_embed_mat = pk.load(f)
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
+
+pos_mat = make_pos(batch_size, seq_len, embed_len)
 
 archs = {'att_encode': AttEncode,
          'att_decode': AttDecode}
@@ -120,8 +138,8 @@ def fit(name, max_epoch, en_embed_mat, zh_embed_mat, path_feats, detail):
     train_loader, dev_loader = get_loader(tensors[:bound]), get_loader(tensors[bound:])
     en_embed_mat, zh_embed_mat = torch.Tensor(en_embed_mat), torch.Tensor(zh_embed_mat)
     Encode, Decode = map_item(name + '_encode', archs), map_item(name + '_decode', archs)
-    encode = Encode(en_embed_mat, head=4, stack=2).to(device)
-    decode = Decode(zh_embed_mat, head=4, stack=2).to(device)
+    encode = Encode(en_embed_mat, pos_mat, head=4, stack=2).to(device)
+    decode = Decode(zh_embed_mat, pos_mat, head=4, stack=2).to(device)
     loss_func = CrossEntropyLoss(ignore_index=0, reduction='sum')
     learn_rate, min_rate = 1e-3, 1e-5
     min_dev_loss = float('inf')

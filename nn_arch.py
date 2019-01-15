@@ -5,17 +5,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def make_pos(x, embed_len):
-    p = torch.zeros(1, x.size(1), embed_len)
-    for i in range(x.size(1)):
-        for j in range(embed_len):
-            if j % 2:
-                p[0, i, j] = math.sin(i / math.pow(1e5, j / embed_len))
-            else:
-                p[0, i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
-    return p.repeat(x.size(0), 1, 1)
-
-
 def mul_att(layers, x, y):
     querys, keys, vals, fuse = layers
     c = list()
@@ -31,11 +20,11 @@ def mul_att(layers, x, y):
 
 
 class AttEncode(nn.Module):
-    def __init__(self, en_embed_mat, head, stack):
+    def __init__(self, en_embed_mat, pos_mat, head, stack):
         super(AttEncode, self).__init__()
         en_vocab_num, en_embed_len = en_embed_mat.size()
-        self.en_embed_len = en_embed_len
         self.en_embed = nn.Embedding(en_vocab_num, en_embed_len, _weight=en_embed_mat)
+        self.pos = pos_mat
         self.querys, self.keys, self.vals = [[[nn.Linear(en_embed_len, 200)] * head] * stack] * 3
         self.fuses = [nn.Linear(200 * head, 200)] * stack
         self.lals = [nn.Sequential(nn.Linear(200, 200),
@@ -43,9 +32,8 @@ class AttEncode(nn.Module):
                                    nn.Linear(200, 200))] * stack
 
     def forward(self, x):
-        p = make_pos(x, self.en_embed_len)
         x = self.en_embed(x)
-        x = x + p
+        x = x + self.pos
         for i in range(len(self.querys)):
             r = x
             layers = [self.querys[i], self.keys[i], self.vals[i], self.fuses[i]]
@@ -58,11 +46,11 @@ class AttEncode(nn.Module):
 
 
 class AttDecode(nn.Module):
-    def __init__(self, zh_embed_mat, head, stack):
+    def __init__(self, zh_embed_mat, pos_mat, head, stack):
         super(AttDecode, self).__init__()
         zh_vocab_num, zh_embed_len = zh_embed_mat.size()
-        self.zh_embed_len = zh_embed_len
         self.zh_embed = nn.Embedding(zh_vocab_num, zh_embed_len, _weight=zh_embed_mat)
+        self.pos = pos_mat
         self.querys, self.keys, self.vals = [[[[nn.Linear(zh_embed_len, 200)] * head] * stack] * 2] * 3
         self.fuses = [[nn.Linear(200 * head, 200)] * stack] * 2
         self.lals = [nn.Sequential(nn.Linear(200, 200),
@@ -72,9 +60,8 @@ class AttDecode(nn.Module):
                                 nn.Linear(200, zh_vocab_num))
 
     def forward(self, x, y):
-        p = make_pos(y, self.zh_embed_len)
         y = self.zh_embed(y)
-        y = y + p
+        y = y + self.pos
         for i in range(len(self.querys)):
             r = y
             layers = [self.querys[0][i], self.keys[0][i], self.vals[0][i], self.fuses[0][i]]
