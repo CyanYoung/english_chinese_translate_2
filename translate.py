@@ -12,7 +12,7 @@ from preprocess import clean
 
 from represent import sent2ind
 
-from nn_arch import AttEncode, AttDecode, AttPlot
+from nn_arch import AttEncode, AttDecode
 
 from util import map_item
 
@@ -32,19 +32,6 @@ def load_model(name, embed_mat, device, mode):
     part_dict.update(part_dict)
     part.load_state_dict(part_dict)
     return part
-
-
-def load_plot(name, en_embed_mat, zh_embed_mat, device):
-    en_embed_mat, zh_embed_mat = torch.Tensor(en_embed_mat), torch.Tensor(zh_embed_mat)
-    model = torch.load(map_item(name, paths), map_location=device)
-    full_dict = model.state_dict()
-    arch = map_item(name + '_plot', archs)
-    plot = arch(en_embed_mat, zh_embed_mat).to(device)
-    plot_dict = plot.state_dict()
-    plot_dict = {key: val for key, val in full_dict.items() if key in plot_dict}
-    plot_dict.update(plot_dict)
-    plot.load_state_dict(plot_dict)
-    return plot
 
 
 def ind2word(word_inds):
@@ -70,7 +57,7 @@ def check(probs, cand, keep_eos):
 
 
 def search(decode, state, cand):
-    zh_pad_bos = sent2ind([bos], zh_word_inds, seq_len, 'post', keep_oov=True)
+    zh_pad_bos = sent2ind([bos], zh_word_inds, seq_len, keep_oov=True)
     zh_word = torch.LongTensor([zh_pad_bos]).to(device)
     prods = decode(zh_word, state)[0][0]
     probs = F.softmax(prods, dim=0).numpy()
@@ -83,7 +70,7 @@ def search(decode, state, cand):
         count = count + 1
         for i in range(cand):
             zh_texts[i] = zh_texts[i] + next_words[i]
-            zh_pad_seq = sent2ind(zh_texts[i], zh_word_inds, seq_len, 'post', keep_oov=True)
+            zh_pad_seq = sent2ind(zh_texts[i], zh_word_inds, seq_len, keep_oov=True)
             zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
             step = min(count - 1, seq_len - 1)
             prods = decode(zh_sent, state)[0][step]
@@ -140,14 +127,12 @@ eos_ind = zh_word_inds[eos]
 zh_ind_words = ind2word(zh_word_inds)
 
 archs = {'att_encode': AttEncode,
-         'att_decode': AttDecode,
-         'att_plot': AttPlot}
+         'att_decode': AttDecode}
 
 paths = {'att': 'model/rnn_att.pkl'}
 
 models = {'att_encode': load_model('att', en_embed_mat, device, 'encode'),
-          'att_decode': load_model('att', zh_embed_mat, device, 'decode'),
-          'att_plot': load_plot('att', en_embed_mat, zh_embed_mat, device)}
+          'att_decode': load_model('att', zh_embed_mat, device, 'decode')}
 
 
 def plot_att(en_words, zh_text, atts):
@@ -168,7 +153,7 @@ def predict(text, name):
     en_text = clean(text, 'en')
     en_text = ' '.join([en_text, eos])
     en_words = en_text.split()
-    en_pad_seq = sent2ind(en_words, en_word_inds, seq_len, 'pre', keep_oov=True)
+    en_pad_seq = sent2ind(en_words, en_word_inds, seq_len, keep_oov=True)
     en_sent = torch.LongTensor([en_pad_seq]).to(device)
     encode = map_item(name + '_encode', models)
     decode = map_item(name + '_decode', models)
@@ -179,7 +164,7 @@ def predict(text, name):
         zh_pred = search(decode, state, cand=3)
         if name == 'att' and __name__ == '__main__':
             zh_text = bos + zh_pred
-            zh_pad_seq = sent2ind(zh_text, zh_word_inds, seq_len, 'post', keep_oov=True)
+            zh_pad_seq = sent2ind(zh_text, zh_word_inds, seq_len, keep_oov=True)
             zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
             plot = map_item(name + '_plot', models)
             atts = plot(en_sent, zh_sent)[0]
