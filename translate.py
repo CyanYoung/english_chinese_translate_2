@@ -124,8 +124,7 @@ zh_ind_words = ind2word(zh_word_inds)
 archs = {'trm_encode': TrmEncode,
          'trm_decode': TrmDecode}
 
-paths = {'trm_encode': 'model/trm_enc.pkl',
-         'trm_decode': 'model/trm_dec.pkl'}
+paths = {'trm': 'model/dnn_trm.pkl'}
 
 models = {'trm_encode': load_model('trm', en_embed_mat, device, 'encode'),
           'trm_decode': load_model('trm', zh_embed_mat, device, 'decode')}
