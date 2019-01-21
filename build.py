@@ -15,14 +15,14 @@ from util import map_item
 
 
 def make_pos(seq_len, embed_len):
-    pos = torch.zeros(1, seq_len, embed_len)
+    pos = torch.zeros(seq_len, embed_len)
     for i in range(seq_len):
         for j in range(embed_len):
             if j % 2:
-                pos[0, i, j] = math.sin(i / math.pow(1e5, j / embed_len))
+                pos[i, j] = math.sin(i / math.pow(1e5, j / embed_len))
             else:
-                pos[0, i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
-    return pos
+                pos[i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
+    return torch.unsqueeze(pos, dim=0)
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
