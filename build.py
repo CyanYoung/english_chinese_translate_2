@@ -14,15 +14,15 @@ from nn_arch import TrmEncode, TrmDecode
 from util import map_item
 
 
-def make_pos(batch_size, seq_len, embed_len):
-    p = torch.zeros(1, seq_len, embed_len)
+def make_pos(seq_len, embed_len):
+    pos = torch.zeros(1, seq_len, embed_len)
     for i in range(seq_len):
         for j in range(embed_len):
             if j % 2:
-                p[0, i, j] = math.sin(i / math.pow(1e5, j / embed_len))
+                pos[0, i, j] = math.sin(i / math.pow(1e5, j / embed_len))
             else:
-                p[0, i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
-    return p.repeat(batch_size, 1, 1)
+                pos[0, i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
+    return pos
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -44,7 +44,7 @@ with open(path_zh_embed, 'rb') as f:
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
 
-pos_mat = make_pos(batch_size, seq_len, embed_len)
+pos_mat = make_pos(seq_len, embed_len).to(device)
 
 archs = {'trm_encode': TrmEncode,
          'trm_decode': TrmDecode}
