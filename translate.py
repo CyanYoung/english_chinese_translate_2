@@ -115,9 +115,8 @@ with open(path_zh_embed, 'rb') as f:
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
 
-skip_inds = [pad_ind, oov_ind]
-
 eos_ind = zh_word_inds[eos]
+skip_inds = [pad_ind, oov_ind]
 
 zh_ind_words = ind2word(zh_word_inds)
 
