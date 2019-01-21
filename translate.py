@@ -5,9 +5,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-
 from preprocess import clean
 
 from represent import sent2ind
@@ -15,10 +12,6 @@ from represent import sent2ind
 from nn_arch import TrmEncode, TrmDecode
 
 from util import map_item
-
-
-plt.rcParams['axes.unicode_minus'] = False
-plt.rcParams['font.family'] = ['Arial Unicode MS']
 
 
 def load_model(name, embed_mat, device, mode):
@@ -136,20 +129,6 @@ models = {'trm_encode': load_model('trm', en_embed_mat, device, 'encode'),
           'trm_decode': load_model('trm', zh_embed_mat, device, 'decode')}
 
 
-def plot_att(en_words, zh_text, atts):
-    en_len, zh_len = len(en_words), len(zh_text)
-    atts = atts[:zh_len, -en_len:]
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    cax = ax.matshow(atts.numpy(), cmap='bone')
-    fig.colorbar(cax)
-    ax.set_xticklabels([''] + en_words, rotation='vertical')
-    ax.set_yticklabels([''] + list(zh_text))
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
-    plt.show()
-
-
 def predict(text, name):
     en_text = clean(text, 'en')
     en_text = ' '.join([en_text, eos])
@@ -162,15 +141,7 @@ def predict(text, name):
         encode.eval()
         state = encode(en_sent)
         decode.eval()
-        zh_pred = search(decode, state, cand=3)
-        if __name__ == '__main__':
-            zh_text = bos + zh_pred
-            zh_pad_seq = sent2ind(zh_text, zh_word_inds, seq_len, keep_oov=True)
-            zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
-            plot = map_item(name + '_plot', models)
-            atts = plot(en_sent, zh_sent)[0]
-            plot_att(en_words[:-1], zh_text[1:] + eos, atts)
-        return zh_pred
+        return search(decode, state, cand=3)
 
 
 if __name__ == '__main__':
