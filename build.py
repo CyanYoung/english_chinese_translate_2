@@ -89,14 +89,11 @@ def get_loader(triples):
     return DataLoader(triples, batch_size, shuffle=True)
 
 
-def get_metric(models, loss_func, triples):
-    encode, decode = models
+def get_metric(model, loss_func, triples):
     en_sents, zh_sents, labels = triples
     labels = labels.view(-1)
     num = (labels > 0).sum().item()
-    state = encode(en_sents)
-
-    prods = decode(state, zh_sents)
+    prods = model(en_sents, zh_sents)
     prods = prods.view(-1, prods.size(-1))
     preds = torch.max(prods, 1)[1]
     loss = loss_func(prods, labels)
@@ -104,16 +101,13 @@ def get_metric(models, loss_func, triples):
     return loss, acc, num
 
 
-def batch_train(models, loss_func, optims, loader, detail):
-    optim1, optim2 = optims
+def batch_train(models, loss_func, optim, loader, detail):
     total_loss, total_acc, total_num = [0] * 3
     for step, triples in enumerate(loader):
         batch_loss, batch_acc, batch_num = get_metric(models, loss_func, triples)
-        optim1.zero_grad()
-        optim2.zero_grad()
+        optim.zero_grad()
         batch_loss.backward()
-        optim1.step()
-        optim2.step()
+        optim.step()
         total_loss = total_loss + batch_loss.item()
         total_acc, total_num = total_acc + batch_acc, total_num + batch_num
         if detail:
@@ -141,27 +135,24 @@ def fit(name, max_epoch, en_embed_mat, zh_embed_mat, pos_mat, path_feats, detail
     learn_rate, min_rate = 1e-3, 1e-5
     min_dev_loss = float('inf')
     trap_count, max_count = 0, 3
-    print('\n{}\n{}'.format(encode, decode))
+    print('\n{}'.format(model))
     train, epoch = True, 0
     while train and epoch < max_epoch:
         epoch = epoch + 1
-        encode.train()
-        decode.train()
-        optims = [Adam(encode.parameters(), lr=learn_rate), Adam(decode.parameters(), lr=learn_rate)]
+        model.train()
+        optim = Adam(model.parameters(), lr=learn_rate)
         start = time.time()
-        train_loss, train_acc = batch_train([encode, decode], loss_func, optims, train_loader, detail)
+        train_loss, train_acc = batch_train(model, loss_func, optim, train_loader, detail)
         delta = time.time() - start
         with torch.no_grad():
-            encode.eval()
-            decode.eval()
-            dev_loss, dev_acc = batch_dev([encode, decode], loss_func, dev_loader)
+            model.eval()
+            dev_loss, dev_acc = batch_dev(model, loss_func, dev_loader)
         extra = ''
         if dev_loss < min_dev_loss:
             extra = ', val_loss reduce by {:.3f}'.format(min_dev_loss - dev_loss)
             min_dev_loss = dev_loss
             trap_count = 0
-            torch.save(encode, map_item(name + '_encode', paths))
-            torch.save(decode, map_item(name + '_decode', paths))
+            torch.save(model, map_item(name, paths))
         else:
             trap_count = trap_count + 1
             if trap_count > max_count:
