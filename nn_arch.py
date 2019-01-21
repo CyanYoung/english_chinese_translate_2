@@ -87,18 +87,18 @@ class DecodeLayer(nn.Module):
     def __init__(self, embed_len, head):
         super(DecodeLayer, self).__init__()
         self.head = head
-        self.qry = nn.Linear(embed_len, 200 * head)
-        self.key = nn.Linear(embed_len, 200 * head)
-        self.val = nn.Linear(embed_len, 200 * head)
+        self.qrys = nn.ModuleList([nn.Linear(embed_len, 200 * head) for _ in range(2)])
+        self.keys = nn.ModuleList([nn.Linear(embed_len, 200 * head) for _ in range(2)])
+        self.vals = nn.ModuleList([nn.Linear(embed_len, 200 * head) for _ in range(2)])
         self.fuse = nn.Linear(200 * head, 200)
         self.lal = nn.Sequential(nn.Linear(200, 200),
                                  nn.ReLU(),
                                  nn.Linear(200, 200))
 
-    def mul_att(self, x, y):
-        q = self.qry(y).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
-        k = self.key(x).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
-        v = self.val(x).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
+    def mul_att(self, x, y, i):
+        q = self.qrys[i](y).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
+        k = self.keys[i](x).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
+        v = self.vals[i](x).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
         d = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(k.size(-1))
         a = F.softmax(d, dim=-1)
         c = torch.matmul(a, v).transpose(1, 2)
@@ -107,10 +107,10 @@ class DecodeLayer(nn.Module):
 
     def forward(self, y, h):
         r = y
-        y = self.mul_att(y, y)
+        y = self.mul_att(y, y, 0)
         y = F.layer_norm(y + r, y.size()[1:])
         r = y
-        y = self.mul_att(h, y)
+        y = self.mul_att(h, y, 1)
         y = F.layer_norm(y + r, y.size()[1:])
         r = y
         y = self.lal(y)
