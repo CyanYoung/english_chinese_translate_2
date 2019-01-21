@@ -9,7 +9,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
 
-from nn_arch import TrmEncode, TrmDecode
+from nn_arch import Trm
 
 from util import map_item
 
@@ -46,11 +46,9 @@ with open(path_zh_word_ind, 'rb') as f:
 
 pos_mat = make_pos(seq_len, embed_len).to(device)
 
-archs = {'trm_encode': TrmEncode,
-         'trm_decode': TrmDecode}
+archs = {'trm': Trm}
 
-paths = {'trm_encode': 'model/trm_enc.pkl',
-         'trm_decode': 'model/trm_dec.pkl'}
+paths = {'trm': 'model/dnn_trm.pkl'}
 
 
 def load_feat(path_feats):
@@ -137,9 +135,8 @@ def fit(name, max_epoch, en_embed_mat, zh_embed_mat, pos_mat, path_feats, detail
     bound = int(len(tensors) / 2)
     train_loader, dev_loader = get_loader(tensors[:bound]), get_loader(tensors[bound:])
     en_embed_mat, zh_embed_mat = torch.Tensor(en_embed_mat), torch.Tensor(zh_embed_mat)
-    Encode, Decode = map_item(name + '_encode', archs), map_item(name + '_decode', archs)
-    encode = Encode(en_embed_mat, pos_mat, head=4, stack=2).to(device)
-    decode = Decode(zh_embed_mat, pos_mat, head=4, stack=2).to(device)
+    arch = map_item(name, archs)
+    model = arch(en_embed_mat, zh_embed_mat, pos_mat, head=4, stack=2).to(device)
     loss_func = CrossEntropyLoss(ignore_index=0, reduction='sum')
     learn_rate, min_rate = 1e-3, 1e-5
     min_dev_loss = float('inf')
