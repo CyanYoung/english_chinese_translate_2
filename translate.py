@@ -11,7 +11,7 @@ from represent import sent2ind
 
 from nn_arch import TrmEncode, TrmDecode
 
-from util import map_item
+from util import trunc, map_item
 
 
 def load_model(name, embed_mat, device, mode):
@@ -21,8 +21,10 @@ def load_model(name, embed_mat, device, mode):
     arch = map_item('_'.join([name, mode]), archs)
     part = arch(embed_mat).to(device)
     part_dict = part.state_dict()
-    part_dict = {key: val for key, val in full_dict.items() if key in part_dict}
-    part_dict.update(part_dict)
+    for key, val in full_dict.items():
+        key = trunc(key, num=1)
+        if key in part_dict:
+            part_dict[key] = val
     part.load_state_dict(part_dict)
     return part
 
