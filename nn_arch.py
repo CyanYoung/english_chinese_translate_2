@@ -101,7 +101,7 @@ class DecodeLayer(nn.Module):
         v = self.vals[i](x).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
         d = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(k.size(-1))
         if i == 0:
-            d = d.masked_fill(m, -1e9)
+            d = d.masked_fill(m, -1e8)
         a = F.softmax(d, dim=-1)
         c = torch.matmul(a, v).transpose(1, 2)
         c = c.contiguous().view(c.size(0), c.size(1), -1)

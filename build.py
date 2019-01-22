@@ -19,15 +19,14 @@ def get_pos(seq_len, embed_len):
     for i in range(seq_len):
         for j in range(embed_len):
             if j % 2:
-                pos[i, j] = math.sin(i / math.pow(1e5, j / embed_len))
+                pos[i, j] = math.sin(i / math.pow(1e4, j / embed_len))
             else:
-                pos[i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
+                pos[i, j] = math.cos(i / math.pow(1e4, (j - 1) / embed_len))
     return torch.unsqueeze(pos, dim=0)
 
 
 def get_mask(head, seq_len):
-    mask = torch.ones(seq_len, seq_len).byte()
-    mask = torch.triu(mask, diagonal=1)
+    mask = torch.triu(torch.ones(seq_len, seq_len).byte(), diagonal=1)
     mask = torch.unsqueeze(mask, dim=0)
     mask = mask.repeat(head, 1, 1)
     return torch.unsqueeze(mask, dim=0)
