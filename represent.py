@@ -34,13 +34,10 @@ def save(item, path):
         pk.dump(item, f)
 
 
-def add_flag(texts, lang, bos, eos):
+def add_flag(texts):
     flag_texts = list()
     for text in texts:
-        if lang == 'zh':
-            flag_texts.append(bos + text + eos)
-        else:
-            flag_texts.append(' '.join([bos, text, eos]))
+        flag_texts.append(bos + text + eos)
     return flag_texts
 
 
@@ -113,10 +110,9 @@ def vectorize(paths, mode):
     with open(paths['data'], 'r') as f:
         pairs = json.load(f)
     en_texts, zh_texts = zip(*pairs)
-    en_texts, zh_texts = list(en_texts), list(zh_texts)
-    en_sents = add_flag(en_texts, 'en', bos='', eos=eos)
+    en_sents, zh_texts = list(en_texts), list(zh_texts)
     en_sent_words = [sent.split() for sent in en_sents]
-    flag_zh_texts = add_flag(zh_texts, 'zh', bos=bos, eos=eos)
+    flag_zh_texts = add_flag(zh_texts)
     if mode == 'train':
         tokenize(en_sent_words, 'en', path_en_word_ind)
         embed(path_en_word_ind, path_en_word_vec, 'en', path_en_embed)

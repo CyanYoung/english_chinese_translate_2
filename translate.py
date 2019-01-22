@@ -142,7 +142,6 @@ models = {'trm_encode': load_model('trm', en_embed_mat, pos_mat, mask_mat, devic
 
 def predict(text, name):
     en_text = clean(text, 'en')
-    en_text = ' '.join([en_text, eos])
     en_words = en_text.split()
     en_pad_seq = sent2ind(en_words, en_word_inds, seq_len, keep_oov=True)
     en_sent = torch.LongTensor([en_pad_seq]).to(device)
