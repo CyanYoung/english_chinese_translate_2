@@ -14,23 +14,6 @@ from nn_arch import Trm
 from util import map_item
 
 
-def get_pos(seq_len, embed_len):
-    pos = torch.zeros(seq_len, embed_len)
-    for i in range(seq_len):
-        for j in range(embed_len):
-            if j % 2:
-                pos[i, j] = math.sin(i / math.pow(1e5, j / embed_len))
-            else:
-                pos[i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
-    return torch.unsqueeze(pos, dim=0)
-
-
-def get_mask(seq_len):
-    mask = torch.ones(seq_len, seq_len).byte()
-    mask = torch.triu(mask, diagonal=1)
-    return torch.unsqueeze(mask, dim=0)
-
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 detail = False if torch.cuda.is_available() else True
@@ -49,9 +32,6 @@ with open(path_zh_embed, 'rb') as f:
     zh_embed_mat = pk.load(f)
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
-
-pos_mat = get_pos(seq_len, embed_len).to(device)
-mask_mat = get_mask(seq_len).to(device)
 
 archs = {'trm': Trm}
 
@@ -131,13 +111,35 @@ def batch_dev(model, loss_func, loader):
     return total_loss / total_num, total_acc / total_num
 
 
-def fit(name, max_epoch, en_embed_mat, zh_embed_mat, pos_mat, path_feats, detail):
+def get_pos(seq_len, embed_len):
+    pos = torch.zeros(seq_len, embed_len)
+    for i in range(seq_len):
+        for j in range(embed_len):
+            if j % 2:
+                pos[i, j] = math.sin(i / math.pow(1e5, j / embed_len))
+            else:
+                pos[i, j] = math.cos(i / math.pow(1e5, (j - 1) / embed_len))
+    return torch.unsqueeze(pos, dim=0)
+
+
+def get_mask(head, seq_len):
+    mask = torch.ones(seq_len, seq_len).byte()
+    mask = torch.triu(mask, diagonal=1)
+    mask = torch.unsqueeze(mask, dim=0)
+    mask = mask.repeat(head, 1, 1)
+    return torch.unsqueeze(mask, dim=0)
+
+
+def fit(name, max_epoch, en_embed_mat, zh_embed_mat, path_feats, detail):
     tensors = tensorize(load_feat(path_feats), device)
     bound = int(len(tensors) / 2)
     train_loader, dev_loader = get_loader(tensors[:bound]), get_loader(tensors[bound:])
     en_embed_mat, zh_embed_mat = torch.Tensor(en_embed_mat), torch.Tensor(zh_embed_mat)
     arch = map_item(name, archs)
-    model = arch(en_embed_mat, zh_embed_mat, pos_mat, mask_mat, head=4, stack=2).to(device)
+    pos_mat = get_pos(seq_len, embed_len).to(device)
+    head, stack = 4, 2
+    mask_mat = get_mask(head, seq_len).to(device)
+    model = arch(en_embed_mat, zh_embed_mat, pos_mat, mask_mat, head, stack).to(device)
     loss_func = CrossEntropyLoss(ignore_index=0, reduction='sum')
     learn_rate, min_rate = 1e-3, 1e-5
     min_dev_loss = float('inf')
@@ -181,4 +183,4 @@ if __name__ == '__main__':
     path_feats['en_sent_dev'] = 'feat/en_sent_dev.pkl'
     path_feats['zh_sent_dev'] = 'feat/zh_sent_dev.pkl'
     path_feats['label_dev'] = 'feat/label_dev.pkl'
-    fit('trm', 50, en_embed_mat, zh_embed_mat, pos_mat, path_feats, detail)
+    fit('trm', 50, en_embed_mat, zh_embed_mat, path_feats, detail)
