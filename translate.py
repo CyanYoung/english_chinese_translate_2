@@ -9,6 +9,8 @@ from preprocess import clean
 
 from represent import sent2ind
 
+from build import get_pos, get_mask
+
 from nn_arch import TrmEncode, TrmDecode
 
 from util import trunc, map_item
@@ -95,8 +97,11 @@ def search(decode, state, cand):
 
 device = torch.device('cpu')
 
+embed_len = 200
 seq_len = 50
 max_len = 50
+
+head, stack = 4, 2
 
 bos, eos = '<', '>'
 
@@ -114,6 +119,9 @@ with open(path_zh_embed, 'rb') as f:
     zh_embed_mat = pk.load(f)
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
+
+pos_mat = get_pos(seq_len, embed_len).to(device)
+mask_mat = get_mask(head, seq_len).to(device)
 
 eos_ind = zh_word_inds[eos]
 skip_inds = [pad_ind, oov_ind]
