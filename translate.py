@@ -16,12 +16,15 @@ from nn_arch import TrmEncode, TrmDecode
 from util import trunc, map_item
 
 
-def load_model(name, embed_mat, device, mode):
+def load_model(name, embed_mat, pos_mat, mask_mat, device, mode):
     embed_mat = torch.Tensor(embed_mat)
     model = torch.load(map_item(name, paths), map_location=device)
     full_dict = model.state_dict()
     arch = map_item('_'.join([name, mode]), archs)
-    part = arch(embed_mat).to(device)
+    if mode == 'decode':
+        part = arch(embed_mat, pos_mat, mask_mat, head, stack).to(device)
+    else:
+        part = arch(embed_mat, pos_mat, head, stack).to(device)
     part_dict = part.state_dict()
     for key, val in full_dict.items():
         key = trunc(key, num=1)
@@ -120,8 +123,8 @@ with open(path_zh_embed, 'rb') as f:
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
 
-pos_mat = get_pos(seq_len, embed_len).to(device)
 mask_mat = get_mask(head, seq_len).to(device)
+pos_mat = get_pos(seq_len, embed_len).to(device)
 
 eos_ind = zh_word_inds[eos]
 skip_inds = [pad_ind, oov_ind]
@@ -133,8 +136,8 @@ archs = {'trm_encode': TrmEncode,
 
 paths = {'trm': 'model/dnn_trm.pkl'}
 
-models = {'trm_encode': load_model('trm', en_embed_mat, device, 'encode'),
-          'trm_decode': load_model('trm', zh_embed_mat, device, 'decode')}
+models = {'trm_encode': load_model('trm', en_embed_mat, pos_mat, mask_mat, device, 'encode'),
+          'trm_decode': load_model('trm', zh_embed_mat, pos_mat, mask_mat, device, 'decode')}
 
 
 def predict(text, name):

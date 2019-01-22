@@ -54,8 +54,8 @@ with open(path_zh_embed, 'rb') as f:
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
 
-pos_mat = get_pos(seq_len, embed_len).to(device)
 mask_mat = get_mask(head, seq_len).to(device)
+pos_mat = get_pos(seq_len, embed_len).to(device)
 
 archs = {'trm': Trm}
 
