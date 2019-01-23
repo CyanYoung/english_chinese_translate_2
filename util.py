@@ -11,11 +11,6 @@ def load_word_re(path):
     return '(' + ')|('.join(words) + ')'
 
 
-def trunc(key, num):
-    fields = key.split('.')
-    return '.'.join(fields[num:])
-
-
 def map_item(name, items):
     if name in items:
         return items[name]

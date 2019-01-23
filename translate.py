@@ -13,7 +13,7 @@ from build import get_pos, get_mask
 
 from nn_arch import TrmEncode, TrmDecode
 
-from util import trunc, map_item
+from util import map_item
 
 
 def load_model(name, embed_mat, pos_mat, mask_mat, device, mode):
@@ -26,10 +26,10 @@ def load_model(name, embed_mat, pos_mat, mask_mat, device, mode):
     else:
         part = arch(embed_mat, pos_mat, head, stack).to(device)
     part_dict = part.state_dict()
-    for key, val in full_dict.items():
-        key = trunc(key, num=1)
-        if key in part_dict:
-            part_dict[key] = val
+    for part_key in part_dict.keys():
+        full_key = '.'.join([mode, part_key])
+        if full_key in full_dict:
+            part_dict[part_key] = full_dict[full_key]
     part.load_state_dict(part_dict)
     return part
 
