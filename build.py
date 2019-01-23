@@ -105,7 +105,7 @@ def get_metric(model, loss_func, triples):
     num = (labels > 0).sum().item()
     prods = model(en_sents, zh_sents)
     prods = prods.view(-1, prods.size(-1))
-    preds = torch.max(prods, 1)[1]
+    preds = torch.max(prods, dim=1)[1]
     loss = loss_func(prods, labels)
     acc = (preds == labels).sum().item()
     return loss, acc, num
