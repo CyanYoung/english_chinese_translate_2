@@ -46,7 +46,7 @@ class EncodeLayer(nn.Module):
                                  nn.Linear(200, 200))
 
     def mul_att(self, x, y):
-        q = self.qry(y).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
+        q = self.qry(y).view(y.size(0), y.size(1), self.head, -1).transpose(1, 2)
         k = self.key(x).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
         v = self.val(x).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
         d = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(k.size(-1))
@@ -96,12 +96,12 @@ class DecodeLayer(nn.Module):
                                  nn.Linear(200, 200))
 
     def mul_att(self, x, y, m, i):
-        q = self.qrys[i](y).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
+        q = self.qrys[i](y).view(y.size(0), y.size(1), self.head, -1).transpose(1, 2)
         k = self.keys[i](x).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
         v = self.vals[i](x).view(x.size(0), x.size(1), self.head, -1).transpose(1, 2)
         d = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(k.size(-1))
         if i == 0:
-            d = d.masked_fill(m, -1e8)
+            d = d.masked_fill(m, -float('inf'))
         a = F.softmax(d, dim=-1)
         c = torch.matmul(a, v).transpose(1, 2)
         c = c.contiguous().view(c.size(0), c.size(1), -1)
