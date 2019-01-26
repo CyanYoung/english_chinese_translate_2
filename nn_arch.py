@@ -12,8 +12,8 @@ class Trm(nn.Module):
         self.decode = TrmDecode(zh_embed_mat, pos_mat, mask_mat, head, stack)
 
     def forward(self, x, y):
-        h = self.encode(x)
-        return self.decode(y, h)
+        x = self.encode(x)
+        return self.decode(y, x)
 
 
 class TrmEncode(nn.Module):
@@ -74,12 +74,12 @@ class TrmDecode(nn.Module):
         self.dl = nn.Sequential(nn.Dropout(0.2),
                                 nn.Linear(200, zh_vocab_num))
 
-    def forward(self, y, h):
+    def forward(self, y, x):
         p, m = self.pos.repeat(y.size(0), 1, 1), self.mask.repeat(y.size(0), 1, 1, 1)
         y = self.zh_embed(y)
         y = y + p
         for layer in self.layers:
-            y = layer(y, h, m)
+            y = layer(y, x, m)
         return self.dl(y)
 
 
@@ -107,12 +107,12 @@ class DecodeLayer(nn.Module):
         c = c.contiguous().view(c.size(0), c.size(1), -1)
         return self.fuse(c)
 
-    def forward(self, y, h, m):
+    def forward(self, y, x, m):
         r = y
         y = self.mul_att(y, y, m, 0)
         y = F.layer_norm(y + r, y.size()[1:])
         r = y
-        y = self.mul_att(h, y, m, 1)
+        y = self.mul_att(x, y, m, 1)
         y = F.layer_norm(y + r, y.size()[1:])
         r = y
         y = self.lal(y)
