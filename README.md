@@ -1,4 +1,4 @@
-## English Chinese Translate 2018-12
+## English Chinese Translate 2019-1
 
 #### 1.preprocess
 
@@ -10,13 +10,13 @@ add_flag() 添加控制符，shift() 对 zh_text 分别删去 bos、eos 得到 z
 
 tokenize() 分别通过 en_sent、flag_zh_text 建立词索引，构造 embed_mat
 
-align() 对训练数据 en_sent 头部，zh_sent、label 尾部，填充或截取为定长序列
+align() 对非测试数据 en_sent、zh_sent、label 头部，填充或截取为定长序列
 
 #### 3.build
 
-通过 rnn 的 s2s、att 构建翻译模型，分别对解码器词特征 h2、编码器词特征 h1
+通过 dnn 的 trm 构建翻译模型，分别对解码器词特征 x、编码器词特征 y 多头
 
-线性映射得到 q、k、v，使用点积注意力得到语境向量 c，h2_i 与 c_i 共同决定输出
+线性映射得到 q、k、v，使用点积注意力分别得到语境向量、再进行交互决定输出
 
 #### 4.translate
 
