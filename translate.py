@@ -9,7 +9,7 @@ from preprocess import clean
 
 from represent import sent2ind
 
-from build import get_pos, get_mask
+from build import get_mask, get_pos
 
 from nn_arch import TrmEncode, TrmDecode
 

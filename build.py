@@ -14,6 +14,13 @@ from nn_arch import Trm
 from util import map_item
 
 
+def get_mask(head, seq_len):
+    mask = torch.triu(torch.ones(seq_len, seq_len).byte(), diagonal=1)
+    mask = torch.unsqueeze(mask, dim=0)
+    mask = mask.repeat(head, 1, 1)
+    return torch.unsqueeze(mask, dim=0)
+
+
 def get_pos(seq_len, embed_len):
     pos = torch.zeros(seq_len, embed_len)
     for i in range(seq_len):
@@ -23,13 +30,6 @@ def get_pos(seq_len, embed_len):
             else:
                 pos[i, j] = math.cos(i / math.pow(1e4, (j - 1) / embed_len))
     return torch.unsqueeze(pos, dim=0)
-
-
-def get_mask(head, seq_len):
-    mask = torch.triu(torch.ones(seq_len, seq_len).byte(), diagonal=1)
-    mask = torch.unsqueeze(mask, dim=0)
-    mask = mask.repeat(head, 1, 1)
-    return torch.unsqueeze(mask, dim=0)
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
