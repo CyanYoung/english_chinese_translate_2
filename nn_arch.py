@@ -44,6 +44,7 @@ class EncodeLayer(nn.Module):
         self.lal = nn.Sequential(nn.Linear(200, 200),
                                  nn.ReLU(),
                                  nn.Linear(200, 200))
+        self.lns = nn.ModuleList([nn.LayerNorm(200) for _ in range(2)])
 
     def mul_att(self, x, y):
         q = self.qry(y).view(y.size(0), y.size(1), self.head, -1).transpose(1, 2)
@@ -58,10 +59,10 @@ class EncodeLayer(nn.Module):
     def forward(self, x):
         r = x
         x = self.mul_att(x, x)
-        x = F.layer_norm(x + r, x.size()[1:])
+        x = self.lns[0](x + r)
         r = x
         x = self.lal(x)
-        return F.layer_norm(x + r, x.size()[1:])
+        return self.lns[1](x + r)
 
 
 class TrmDecode(nn.Module):
@@ -94,6 +95,7 @@ class DecodeLayer(nn.Module):
         self.lal = nn.Sequential(nn.Linear(200, 200),
                                  nn.ReLU(),
                                  nn.Linear(200, 200))
+        self.lns = nn.ModuleList([nn.LayerNorm(200) for _ in range(3)])
 
     def mul_att(self, x, y, m, i):
         q = self.qrys[i](y).view(y.size(0), y.size(1), self.head, -1).transpose(1, 2)
@@ -110,10 +112,10 @@ class DecodeLayer(nn.Module):
     def forward(self, y, x, m):
         r = y
         y = self.mul_att(y, y, m, 0)
-        y = F.layer_norm(y + r, y.size()[1:])
+        y = self.lns[0](y + r)
         r = y
         y = self.mul_att(x, y, m, 1)
-        y = F.layer_norm(y + r, y.size()[1:])
+        y = self.lns[1](y + r)
         r = y
         y = self.lal(y)
-        return F.layer_norm(y + r, y.size()[1:])
+        return self.lns[2](y + r)
