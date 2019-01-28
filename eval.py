@@ -13,7 +13,7 @@ from util import map_item
 
 device = torch.device('cpu')
 
-get_text, get_bleu = True, False
+flags = [True, False]
 
 path_dev_en_sent = 'feat/en_sent_dev.pkl'
 path_dev_zh_sent = 'feat/zh_sent_dev.pkl'
@@ -72,7 +72,7 @@ def test(name, test_en_sents, test_labels):
 
 
 if __name__ == '__main__':
-    if get_text:
+    if flags[0]:
         debug('trm', dev_triples, cand=10)
-    if get_bleu:
+    if flags[1]:
         test('trm', test_en_sents, test_labels)
