@@ -91,7 +91,7 @@ class DecodeLayer(nn.Module):
         self.qrys = nn.ModuleList([nn.Linear(embed_len, 200 * head) for _ in range(2)])
         self.keys = nn.ModuleList([nn.Linear(embed_len, 200 * head) for _ in range(2)])
         self.vals = nn.ModuleList([nn.Linear(embed_len, 200 * head) for _ in range(2)])
-        self.fuse = nn.Linear(200 * head, 200)
+        self.fuses = nn.ModuleList([nn.Linear(200 * head, 200) for _ in range(2)])
         self.lal = nn.Sequential(nn.Linear(200, 200),
                                  nn.ReLU(),
                                  nn.Linear(200, 200))
@@ -107,7 +107,7 @@ class DecodeLayer(nn.Module):
         a = F.softmax(d, dim=-1)
         c = torch.matmul(a, v).transpose(1, 2)
         c = c.contiguous().view(c.size(0), c.size(1), -1)
-        return self.fuse(c)
+        return self.fuses[i](c)
 
     def forward(self, y, x, m):
         r = y
