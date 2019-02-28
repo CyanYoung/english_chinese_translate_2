@@ -13,8 +13,6 @@ from util import map_item
 
 device = torch.device('cpu')
 
-flags = [True, False]
-
 path_dev_en_sent = 'feat/en_sent_dev.pkl'
 path_dev_zh_sent = 'feat/zh_sent_dev.pkl'
 path_dev_label = 'feat/label_dev.pkl'
@@ -62,7 +60,8 @@ def debug(name, triples, cand):
     pair_print(labels, prods, zh_ind_words, 'trm_sep')
 
 
-def test(name, test_en_sents, test_labels):
+def test(name, dev_triples, test_en_sents, test_labels):
+    debug('trm', dev_triples, cand=10)
     labels = [[label.split()] for label in test_labels]
     preds = list()
     for en_sent in test_en_sents:
@@ -72,7 +71,4 @@ def test(name, test_en_sents, test_labels):
 
 
 if __name__ == '__main__':
-    if flags[0]:
-        debug('trm', dev_triples, cand=10)
-    if flags[1]:
-        test('trm', test_en_sents, test_labels)
+    test('trm', dev_triples, test_en_sents, test_labels)
