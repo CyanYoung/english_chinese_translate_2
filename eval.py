@@ -60,8 +60,9 @@ def debug(name, triples, cand):
     pair_print(labels, prods, zh_ind_words, 'trm_sep')
 
 
-def test(name, dev_triples, test_en_sents, test_labels):
-    debug('trm', dev_triples, cand=10)
+def test(name, dev_triples, test_en_sents, test_labels, detail):
+    if detail:
+        debug('trm', dev_triples, cand=10)
     labels = [[label.split()] for label in test_labels]
     preds = list()
     for en_sent in test_en_sents:
@@ -71,4 +72,4 @@ def test(name, dev_triples, test_en_sents, test_labels):
 
 
 if __name__ == '__main__':
-    test('trm', dev_triples, test_en_sents, test_labels)
+    test('trm', dev_triples, test_en_sents, test_labels, detail=False)
