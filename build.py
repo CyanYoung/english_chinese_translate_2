@@ -58,7 +58,7 @@ pos_mat = get_pos(seq_len, embed_len).to(device)
 
 archs = {'trm': Trm}
 
-paths = {'trm': 'model/dnn_trm.pkl'}
+paths = {'trm': 'model/trm.pkl'}
 
 
 def load_feat(path_feats):

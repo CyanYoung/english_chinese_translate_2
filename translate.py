@@ -134,7 +134,7 @@ zh_ind_words = ind2word(zh_word_inds)
 archs = {'trm_encode': TrmEncode,
          'trm_decode': TrmDecode}
 
-paths = {'trm': 'model/dnn_trm.pkl'}
+paths = {'trm': 'model/trm.pkl'}
 
 models = {'trm': torch.load(map_item('trm', paths), map_location=device),
           'trm_encode': load_model('trm', en_embed_mat, pos_mat, mask_mat, device, 'encode'),
