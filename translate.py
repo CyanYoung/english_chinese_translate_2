@@ -9,20 +9,20 @@ from preprocess import clean
 
 from represent import sent2ind
 
-from build import get_mask, get_pos
+from build import get_att, get_pos
 
 from nn_arch import TrmEncode, TrmDecode
 
 from util import map_item
 
 
-def load_model(name, embed_mat, pos_mat, mask_mat, device, mode):
+def load_model(name, embed_mat, pos_mat, att_mat, device, mode):
     embed_mat = torch.Tensor(embed_mat)
     model = torch.load(map_item(name, paths), map_location=device)
     full_dict = model.state_dict()
     arch = map_item('_'.join([name, mode]), archs)
     if mode == 'decode':
-        part = arch(embed_mat, pos_mat, mask_mat, head, stack).to(device)
+        part = arch(embed_mat, pos_mat, att_mat, head, stack).to(device)
     else:
         part = arch(embed_mat, pos_mat, head, stack).to(device)
     part_dict = part.state_dict()
@@ -123,7 +123,7 @@ with open(path_zh_embed, 'rb') as f:
 with open(path_zh_word_ind, 'rb') as f:
     zh_word_inds = pk.load(f)
 
-mask_mat = get_mask(head, seq_len).to(device)
+att_mat = get_att(head, seq_len).to(device)
 pos_mat = get_pos(seq_len, embed_len).to(device)
 
 eos_ind = zh_word_inds[eos]
@@ -137,8 +137,8 @@ archs = {'trm_encode': TrmEncode,
 paths = {'trm': 'model/trm.pkl'}
 
 models = {'trm': torch.load(map_item('trm', paths), map_location=device),
-          'trm_encode': load_model('trm', en_embed_mat, pos_mat, mask_mat, device, 'encode'),
-          'trm_decode': load_model('trm', zh_embed_mat, pos_mat, mask_mat, device, 'decode')}
+          'trm_encode': load_model('trm', en_embed_mat, pos_mat, att_mat, device, 'encode'),
+          'trm_decode': load_model('trm', zh_embed_mat, pos_mat, att_mat, device, 'decode')}
 
 
 def predict(text, name):
