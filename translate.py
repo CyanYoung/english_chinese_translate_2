@@ -137,7 +137,7 @@ archs = {'trm_encode': TrmEncode,
 paths = {'trm': 'model/trm.pkl'}
 
 models = {'trm': torch.load(map_item('trm', paths), map_location=device),
-          'trm_encode': load_model('trm', en_embed_mat, pos_mat, device, 'encode'),
+          'trm_encode': load_model('trm', en_embed_mat, pos_mat, att_mat, device, 'encode'),
           'trm_decode': load_model('trm', zh_embed_mat, pos_mat, att_mat, device, 'decode')}
 
 
