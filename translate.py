@@ -56,10 +56,10 @@ def check(probs, cand, keep_eos):
     return max_probs, max_inds
 
 
-def search(decode, state, cand):
+def search(decode, state, en_sent, cand):
     zh_pad_bos = sent2ind([bos], zh_word_inds, seq_len, keep_oov=True)
     zh_word = torch.LongTensor([zh_pad_bos]).to(device)
-    prods = decode(zh_word, state)[0][0]
+    prods = decode(zh_word, state, en_sent)[0][0]
     probs = F.softmax(prods, dim=0).numpy()
     max_probs, max_inds = check(probs, cand, keep_eos=False)
     zh_texts, log_sums = [bos] * cand, np.log(max_probs)
@@ -73,7 +73,7 @@ def search(decode, state, cand):
             zh_pad_seq = sent2ind(zh_texts[i], zh_word_inds, seq_len, keep_oov=True)
             zh_sent = torch.LongTensor([zh_pad_seq]).to(device)
             step = min(count - 1, seq_len - 1)
-            prods = decode(zh_sent, state)[0][step]
+            prods = decode(zh_sent, state, en_sent)[0][step]
             probs = F.softmax(prods, dim=0).numpy()
             max_probs, max_inds = check(probs, cand, keep_eos=True)
             max_logs = np.log(max_probs) + log_sums[i]
@@ -137,7 +137,7 @@ archs = {'trm_encode': TrmEncode,
 paths = {'trm': 'model/trm.pkl'}
 
 models = {'trm': torch.load(map_item('trm', paths), map_location=device),
-          'trm_encode': load_model('trm', en_embed_mat, pos_mat, att_mat, device, 'encode'),
+          'trm_encode': load_model('trm', en_embed_mat, pos_mat, device, 'encode'),
           'trm_decode': load_model('trm', zh_embed_mat, pos_mat, att_mat, device, 'decode')}
 
 
@@ -152,7 +152,7 @@ def predict(text, name):
         encode.eval()
         state = encode(en_sent)
         decode.eval()
-        return search(decode, state, cand=3)
+        return search(decode, state, en_sent, cand=3)
 
 
 if __name__ == '__main__':
