@@ -8,10 +8,21 @@ import torch.nn.functional as F
 class Trm(nn.Module):
     def __init__(self, en_embed_mat, zh_embed_mat, pos_mat, att_mat, head, stack):
         super(Trm, self).__init__()
-        self.pos, self.att = pos_mat, att_mat
-        self.head = head
-        self.encode = TrmEncode(en_embed_mat, head, stack)
-        self.decode = TrmDecode(zh_embed_mat, head, stack)
+        self.encode = TrmEncode(en_embed_mat, pos_mat, head, stack)
+        self.decode = TrmDecode(zh_embed_mat, pos_mat, att_mat, head, stack)
+
+    def forward(self, x, y):
+        h = self.encode(x)
+        return self.decode(y, h, x)
+
+
+class TrmEncode(nn.Module):
+    def __init__(self, en_embed_mat, pos_mat, head, stack):
+        super(TrmEncode, self).__init__()
+        en_vocab_num, en_embed_len = en_embed_mat.size()
+        self.en_embed = nn.Embedding(en_vocab_num, en_embed_len, _weight=en_embed_mat)
+        self.pos, self.head = pos_mat, head
+        self.layers = nn.ModuleList([EncodeLayer(en_embed_len, head) for _ in range(stack)])
 
     def get_pad(self, x):
         seq_len = x.size(1)
@@ -20,22 +31,9 @@ class Trm(nn.Module):
             pad = torch.unsqueeze(pad, dim=1)
         return pad.repeat(1, self.head, seq_len, 1)
 
-    def forward(self, x, y):
+    def forward(self, x):
         p = self.pos.repeat(x.size(0), 1, 1)
-        mx = self.get_pad(x)
-        my = self.att.repeat(y.size(0), 1, 1, 1) | self.get_pad(y)
-        x = self.encode(x, p, mx)
-        return self.decode(y, x, p, my, mx)
-
-
-class TrmEncode(nn.Module):
-    def __init__(self, en_embed_mat, head, stack):
-        super(TrmEncode, self).__init__()
-        en_vocab_num, en_embed_len = en_embed_mat.size()
-        self.en_embed = nn.Embedding(en_vocab_num, en_embed_len, _weight=en_embed_mat)
-        self.layers = nn.ModuleList([EncodeLayer(en_embed_len, head) for _ in range(stack)])
-
-    def forward(self, x, p, m):
+        m = self.get_pad(x)
         x = self.en_embed(x)
         x = x + p
         for layer in self.layers:
@@ -77,19 +75,30 @@ class EncodeLayer(nn.Module):
 
 
 class TrmDecode(nn.Module):
-    def __init__(self, zh_embed_mat, head, stack):
+    def __init__(self, zh_embed_mat, pos_mat, att_mat, head, stack):
         super(TrmDecode, self).__init__()
         zh_vocab_num, zh_embed_len = zh_embed_mat.size()
         self.zh_embed = nn.Embedding(zh_vocab_num, zh_embed_len, _weight=zh_embed_mat)
+        self.pos, self.att, self.head = pos_mat, att_mat, head
         self.layers = nn.ModuleList([DecodeLayer(zh_embed_len, head) for _ in range(stack)])
         self.dl = nn.Sequential(nn.Dropout(0.2),
                                 nn.Linear(200, zh_vocab_num))
 
-    def forward(self, y, x, p, my, mx):
+    def get_pad(self, x):
+        seq_len = x.size(1)
+        pad = (x == 0)
+        for _ in range(2):
+            pad = torch.unsqueeze(pad, dim=1)
+        return pad.repeat(1, self.head, seq_len, 1)
+
+    def forward(self, y, h, x):
+        p = self.pos.repeat(x.size(0), 1, 1)
+        mx = self.get_pad(x)
+        my = self.att.repeat(y.size(0), 1, 1, 1) | self.get_pad(y)
         y = self.zh_embed(y)
         y = y + p
         for layer in self.layers:
-            y = layer(y, x, my, mx)
+            y = layer(y, h, my, mx)
         return self.dl(y)
 
 
